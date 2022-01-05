@@ -1,6 +1,7 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import net.mamoe.mirai.Bot;
@@ -23,6 +24,17 @@ public class SessionUtil {
 
     public static void clear() {
         sessions = null;
+    }
+
+    public static Session getSession(long sessionId) throws FileNotFoundException, SessionDataNotExistException {
+        List<Session> sessions = getSessions();
+        for (Session session : sessions) {
+            if (session.getId() == sessionId) {
+                return session;
+            }
+        }
+
+        throw new SessionDataNotExistException();
     }
 
     public static void sendMessageFromGroup(

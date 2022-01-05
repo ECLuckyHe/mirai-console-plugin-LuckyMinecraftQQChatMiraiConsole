@@ -45,7 +45,11 @@ public class ConfigOperation {
         return configMap;
     }
 
-    public static short getPort() throws FileNotFoundException {
-        return ((short) getConfigMap().get("port"));
+    public static int getPort() throws FileNotFoundException {
+        return ((int)getConfigMap().get("port"));
+    }
+
+    public static int getHeartbeat() throws FileNotFoundException {
+        return (int) getConfigMap().get("heartbeat");
     }
 }

@@ -4,6 +4,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.ServerThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.extension.PluginComponentStorage;
@@ -63,6 +64,8 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        new ServerThread(getLogger()).start();
 
     }
 
