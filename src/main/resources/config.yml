@@ -2,4 +2,4 @@
 port: 54100
 
 # 心跳包间隔（秒）
-heartbeat: 30
+heartbeat: 5

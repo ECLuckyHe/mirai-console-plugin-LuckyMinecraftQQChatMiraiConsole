@@ -1,6 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
-public class FormatPlaceholder {
+public class QqFormatPlaceholder {
     public static String GROUP_ID = "%groupId%";
     public static String GROUP_NAME = "%groupName%";
     public static String GROUP_NICKNAME = "%groupNickname%";

@@ -7,12 +7,13 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.VarIntStringLengthNotMatchException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.VarIntTooBigException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.VarLongTooBigException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.MinecraftData;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
+import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -31,7 +32,11 @@ public class ConnectionPacketReceiveUtil {
         return new Packet(packetLen, packetId, data);
     }
 
-    public static MinecraftData getMinecraftData(Packet packet, Charset charset) throws VarLongTooBigException, IOException, VarIntStringLengthNotMatchException, VarIntTooBigException, PacketLengthNotMatchException {
+    public static Packet getPacket(byte[] bytes) throws PacketLengthNotMatchException, IOException, VarIntTooBigException {
+        return getPacket(new ByteArrayInputStream(bytes));
+    }
+
+    public static MinecraftConnectionThread getMinecraftConnectionThread(Packet packet, Charset charset, Socket socket) throws VarLongTooBigException, IOException, VarIntStringLengthNotMatchException, VarIntTooBigException, PacketLengthNotMatchException {
         VarInt length = packet.getLength();
         VarInt id = packet.getId();
         byte[] data = Arrays.copyOfRange(packet.getData(), 0, packet.getData().length);
@@ -56,7 +61,8 @@ public class ConnectionPacketReceiveUtil {
             throw new PacketLengthNotMatchException();
         }
 
-        return new MinecraftData(
+        return new MinecraftConnectionThread(
+                socket,
                 sessionId,
                 serverName,
                 joinFormatString,
@@ -67,8 +73,8 @@ public class ConnectionPacketReceiveUtil {
         );
     }
 
-    public static MinecraftData getMinecraftData(Packet packet) throws VarLongTooBigException, IOException, VarIntStringLengthNotMatchException, VarIntTooBigException, PacketLengthNotMatchException {
-        return getMinecraftData(packet, StandardCharsets.UTF_8);
+    public static MinecraftConnectionThread getMinecraftConnectionThread(Packet packet, Socket socket) throws VarLongTooBigException, IOException, VarIntStringLengthNotMatchException, VarIntTooBigException, PacketLengthNotMatchException {
+        return getMinecraftConnectionThread(packet, StandardCharsets.UTF_8, socket);
     }
 
 }

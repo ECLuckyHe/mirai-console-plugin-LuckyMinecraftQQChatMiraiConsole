@@ -4,8 +4,10 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.ServerThread;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.ServerMainThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.extension.PluginComponentStorage;
 import net.mamoe.mirai.console.permission.Permission;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     public static final LuckyMinecraftQQChatMiraiConsole INSTANCE = new LuckyMinecraftQQChatMiraiConsole();
@@ -27,7 +30,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private Permission mcChatPerm;
 
     private LuckyMinecraftQQChatMiraiConsole() {
-        super (new JvmPluginDescriptionBuilder(
+        super(new JvmPluginDescriptionBuilder(
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
                 "1.0"
         ).build());
@@ -35,7 +38,17 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        super.onDisable();
+        List<Session> sessions = null;
+        try {
+            sessions = SessionUtil.getSessions();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+//        关闭所有游戏连接线程
+        for (Session session : sessions) {
+            session.sendClosePacketToMinecraftThread("bot执行退出bot进程指令");
+        }
     }
 
     @Override
@@ -47,6 +60,9 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         INSTANCE.getLogger().info("注册指令完成");
         loadListeners();
         INSTANCE.getLogger().info("注册监听器完成");
+        INSTANCE.getLogger().info("========================");
+        INSTANCE.getLogger().info("注意：该插件只支持单bot运行");
+        INSTANCE.getLogger().info("========================");
     }
 
     @Override
@@ -65,7 +81,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
             e.printStackTrace();
         }
 
-        new ServerThread(getLogger()).start();
+        new ServerMainThread(getLogger()).start();
 
     }
 

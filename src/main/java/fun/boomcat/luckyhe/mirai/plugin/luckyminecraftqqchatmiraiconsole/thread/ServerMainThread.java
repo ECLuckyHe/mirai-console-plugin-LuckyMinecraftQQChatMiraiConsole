@@ -2,7 +2,6 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.MinecraftData;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketSendUtil;
@@ -14,10 +13,10 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ServerThread extends Thread {
+public class ServerMainThread extends Thread {
     private MiraiLogger logger;
 
-    public ServerThread(MiraiLogger logger) {
+    public ServerMainThread(MiraiLogger logger) {
         this.logger = logger;
     }
 
@@ -46,6 +45,7 @@ public class ServerThread extends Thread {
         logger.info("Server Socket开启成功，监听端口为" + port);
 
         while (true) {
+            logger.info("开始监听来自" + port + "端口的请求");
             Socket socket;
             try {
                 socket = serverSocket.accept();
@@ -64,6 +64,11 @@ public class ServerThread extends Thread {
                 outputStream = new BufferedOutputStream(socket.getOutputStream());
             } catch (Exception e) {
                 e.printStackTrace();
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
                 logger.error("获取输入输出流期间出现错误");
                 continue;
             }
@@ -95,9 +100,10 @@ public class ServerThread extends Thread {
             }
 
 //            发来的数据包转为对象
-            MinecraftData minecraftData;
+            MinecraftConnectionThread minecraftConnectionThread;
             try {
-                minecraftData = ConnectionPacketReceiveUtil.getMinecraftData(packet);
+//                传入socket（此时不代表线程会启动）
+                minecraftConnectionThread = ConnectionPacketReceiveUtil.getMinecraftConnectionThread(packet, socket);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("读取包时出现错误，断开连接");
@@ -107,11 +113,11 @@ public class ServerThread extends Thread {
 //            获取对应session
             Session session;
             try {
-                session = SessionUtil.getSession(minecraftData.getSessionId().getValue());
+                session = SessionUtil.getSession(minecraftConnectionThread.getSessionId().getValue());
             } catch (SessionDataNotExistException e) {
 //                发送错误信息数据包
                 try {
-                    outputStream.write(ConnectionPacketSendUtil.getErrorPacket("没有会话号为" + minecraftData.getSessionId().getValue() + "的会话").getBytes());
+                    outputStream.write(ConnectionPacketSendUtil.getErrorPacket("没有会话号为" + minecraftConnectionThread.getSessionId().getValue() + "的会话").getBytes());
                     outputStream.flush();
                 } catch (IOException ex) {
                     ex.printStackTrace();
@@ -157,8 +163,13 @@ public class ServerThread extends Thread {
                 continue;
             }
 
-//            存入到Session中
+//            存入到MinecraftData中
+            logger.info("来自" + socket.getRemoteSocketAddress() + "的连接数据包验证完成，数据正确，进入通信阶段");
+            minecraftConnectionThread.start();
 
+//            添加到同一会话的线程列表和传入会话对象
+            session.addMinecraftThread(minecraftConnectionThread);
+            minecraftConnectionThread.setSession(session);
         }
     }
 }
