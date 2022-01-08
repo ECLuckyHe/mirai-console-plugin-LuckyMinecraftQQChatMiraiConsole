@@ -30,6 +30,8 @@ public class MinecraftConnectionThread extends Thread {
     private VarIntString deathFormatString;
     private VarIntString kickFormatString;
 
+    private String serverAddress;
+
     private boolean isConnect = true;
 
     private final MiraiLogger logger = MiraiLoggerUtil.getLogger();
@@ -47,7 +49,7 @@ public class MinecraftConnectionThread extends Thread {
     private Long pingNumber = 0L;
 
     public String getStringWithPrefix(String threadName, String info) {
-        return "[" + serverName.getContent() + socket.getRemoteSocketAddress().toString() + "][" + threadName + "] " + info;
+        return "[" + serverName.getContent() + serverAddress + "][" + threadName + "] " + info;
     }
 
     public void logInfo(String threadName, String info) {
@@ -62,12 +64,6 @@ public class MinecraftConnectionThread extends Thread {
         VarInt packetId = new VarInt(0xF0);
         VarIntString string = new VarIntString(info);
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength() + string.getBytesLength()), packetId, string.getBytes()));
-        try {
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        isConnect = false;
     }
 
     @Override
@@ -85,7 +81,7 @@ public class MinecraftConnectionThread extends Thread {
 
                         //                    如果发送数据包为关闭包
                         if (packet.getId().getValue() == 0xF0) {
-                            logInfo(threadName, "收到关闭包，内容：" + new VarIntString(packet.getData()).getContent());
+                            logInfo(threadName, "发送关闭包，内容：" + new VarIntString(packet.getData()).getContent());
                             isConnect = false;
                             socket.close();
                         }
@@ -369,6 +365,14 @@ public class MinecraftConnectionThread extends Thread {
         return sessionId;
     }
 
+    public String getServerAddress() {
+        return serverAddress;
+    }
+
+    public VarIntString getServerName() {
+        return serverName;
+    }
+
     public MinecraftConnectionThread(Socket socket, VarLong sessionId, VarIntString serverName, VarIntString joinFormatString, VarIntString quitFormatString, VarIntString msgFormatString, VarIntString deathFormatString, VarIntString kickFormatString) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -381,6 +385,8 @@ public class MinecraftConnectionThread extends Thread {
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());
+
+        this.serverAddress = socket.getRemoteSocketAddress().toString();
     }
 
     public void setSession(Session session) {

@@ -165,6 +165,7 @@ public class ServerMainThread extends Thread {
 
 //            存入到MinecraftData中
             logger.info("来自" + socket.getRemoteSocketAddress() + "的连接数据包验证完成，数据正确，进入通信阶段");
+            minecraftConnectionThread.setDaemon(false);
             minecraftConnectionThread.start();
 
 //            添加到同一会话的线程列表和传入会话对象

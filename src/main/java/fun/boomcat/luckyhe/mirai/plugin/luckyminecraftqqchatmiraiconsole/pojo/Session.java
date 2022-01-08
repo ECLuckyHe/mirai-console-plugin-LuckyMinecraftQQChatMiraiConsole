@@ -198,6 +198,17 @@ public class Session {
         return name;
     }
 
+    public List<SessionGroup> getGroups() {
+        return groups;
+    }
+
+    public String getFormatString() {
+        return formatString;
+    }
+
+    public List<MinecraftConnectionThread> getMinecraftThreads() {
+        return minecraftThreads;
+    }
 
     public Session(long id, String name, List<SessionGroup> groups, String formatString) {
         this.id = id;

@@ -5,8 +5,12 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.excepti
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import net.mamoe.mirai.console.command.CommandSender;
 
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +65,100 @@ public class SessionCommandHandler {
     }
 
     private static void selectList(Object[] args, CommandSender commandSender, String primaryName, String[] secondaryNames) {
+        int len = args.length;
+        if (len == 0) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("会话号 / 备注 / 群列表 / 消息格式 / 连接\n");
+
+            List<Session> sessions;
+            try {
+                sessions = SessionUtil.getSessions();
+            } catch (Exception e) {
+                e.printStackTrace();
+                commandSender.sendMessage("出现其它异常，请联系开发者");
+                return;
+            }
+
+            for (Session session : sessions) {
+                sb.append(session.getId()).append(" / ").append(session.getName()).append(" / ");
+                sb.append("[");
+                for (int i = 0; i < session.getGroups().size(); i++) {
+                    SessionGroup group = session.getGroups().get(i);
+                    sb.append(group.getName()).append("(").append(group.getId()).append(")");
+                    if (i != session.getGroups().size() - 1) {
+                        sb.append(", ");
+                    }
+                }
+                sb.append("]").append(" / ").append(session.getFormatString()).append(" / ");
+                sb.append("[");
+                for (int i = 0; i < session.getMinecraftThreads().size(); i++) {
+                    MinecraftConnectionThread thread = session.getMinecraftThreads().get(i);
+                    sb.append(thread.getServerName().getContent()).append("(").append(thread.getServerAddress()).append(")");
+                    if (i != session.getMinecraftThreads().size() - 1) {
+                        sb.append(", ");
+                    }
+                }
+                sb.append("]").append("\n");
+            }
+
+            MessageUtil.pageSender(commandSender, sb.toString());
+            return;
+        }
+
+        String sessionIdString = args[0].toString();
+        long sessionId;
+        try {
+            sessionId = Long.parseLong(sessionIdString);
+        } catch (NumberFormatException e) {
+            commandSender.sendMessage("会话号应为数字而不是" + sessionIdString);
+            return;
+        }
+
+        Session session;
+        try {
+            session = SessionUtil.getSession(sessionId);
+        } catch (SessionDataNotExistException e) {
+            commandSender.sendMessage("没有会话号为" + sessionId + "的会话");
+            return;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("会话号：").append(session.getId()).append("\n");
+        sb.append("会话备注：").append(session.getName()).append("\n");
+        sb.append("消息格式：").append(session.getFormatString()).append("\n");
+        sb.append("群列表：");
+
+        List<SessionGroup> groups = session.getGroups();
+        if (groups.size() == 0) {
+            sb.append("空\n");
+        } else {
+            sb.append("\n");
+            for (SessionGroup group : groups) {
+                sb.append("    ").append(group.getName()).append("(").append(group.getId()).append(")").append("\n");
+            }
+        }
+
+        sb.append("连接：");
+        List<MinecraftConnectionThread> threads = session.getMinecraftThreads();
+        if (threads.size() == 0) {
+            sb.append("无\n");
+        } else {
+            sb.append("\n");
+            for (MinecraftConnectionThread thread : threads) {
+                sb.append("    ").append(thread.getServerName().getContent()).append("(").append(thread.getServerAddress()).append(")").append("\n");
+            }
+        }
+
+        commandSender.sendMessage(sb.toString());
+
+    }
+
+    @Deprecated
+    @SuppressWarnings("过时的方法，请使用新方法")
+    private static void selectListDeprecated(Object[] args, CommandSender commandSender, String primaryName, String[] secondaryNames) {
         int len = args.length;
         if (len == 0) {
             StringBuilder sb = new StringBuilder();
