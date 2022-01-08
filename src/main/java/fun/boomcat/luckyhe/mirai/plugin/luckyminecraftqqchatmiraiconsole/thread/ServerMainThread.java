@@ -14,20 +14,28 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class ServerMainThread extends Thread {
-    private MiraiLogger logger;
+    private final MiraiLogger logger;
+    private ServerSocket serverSocket;
+    private boolean isRunning = true;
 
     public ServerMainThread(MiraiLogger logger) {
         this.logger = logger;
     }
 
+    public void close() {
+        isRunning = false;
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void run() {
-        ServerSocket serverSocket;
         int port;
-        int heartbeat;
         try {
             port = ConfigOperation.getPort();
-            heartbeat = ConfigOperation.getHeartbeat();
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("获取配置文件失败，请尝试重启程序");
@@ -44,14 +52,18 @@ public class ServerMainThread extends Thread {
 
         logger.info("Server Socket开启成功，监听端口为" + port);
 
-        while (true) {
+        while (isRunning) {
             logger.info("开始监听来自" + port + "端口的请求");
             Socket socket;
             try {
                 socket = serverSocket.accept();
             } catch (Exception e) {
-                e.printStackTrace();
-                logger.error("等待连接期间出现错误");
+//                若serverSocket被关闭，异常会被此处捕捉
+                if (isRunning) {
+//                    只有正常运行出现错误才输出如下信息
+                    e.printStackTrace();
+                    logger.error("等待连接期间出现错误");
+                }
                 continue;
             }
 
@@ -172,5 +184,7 @@ public class ServerMainThread extends Thread {
             session.addMinecraftThread(minecraftConnectionThread);
             minecraftConnectionThread.setSession(session);
         }
+
+        logger.info("监听线程结束");
     }
 }

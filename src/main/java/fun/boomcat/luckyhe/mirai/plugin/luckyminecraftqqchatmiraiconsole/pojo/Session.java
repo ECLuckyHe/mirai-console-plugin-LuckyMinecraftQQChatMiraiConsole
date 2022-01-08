@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 public class Session {
-    private long id;
-    private String name;
-    private List<SessionGroup> groups;
-    private String formatString;
+    private final long id;
+    private final String name;
+    private final List<SessionGroup> groups;
+    private final String formatString;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
 
     public void sendClosePacketToMinecraftThread(String info) {

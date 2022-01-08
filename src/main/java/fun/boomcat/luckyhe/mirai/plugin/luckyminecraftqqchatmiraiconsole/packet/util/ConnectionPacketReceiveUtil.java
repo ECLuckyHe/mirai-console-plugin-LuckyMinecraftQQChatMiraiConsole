@@ -37,8 +37,6 @@ public class ConnectionPacketReceiveUtil {
     }
 
     public static MinecraftConnectionThread getMinecraftConnectionThread(Packet packet, Charset charset, Socket socket) throws VarLongTooBigException, IOException, VarIntStringLengthNotMatchException, VarIntTooBigException, PacketLengthNotMatchException {
-        VarInt length = packet.getLength();
-        VarInt id = packet.getId();
         byte[] data = Arrays.copyOfRange(packet.getData(), 0, packet.getData().length);
 
         int index = 0;

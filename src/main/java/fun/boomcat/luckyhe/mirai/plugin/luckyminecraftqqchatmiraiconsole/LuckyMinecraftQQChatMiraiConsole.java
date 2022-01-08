@@ -29,6 +29,9 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     private Permission mcChatPerm;
 
+//    监听主线程
+    private ServerMainThread serverMainThread = new ServerMainThread(getLogger());
+
     private LuckyMinecraftQQChatMiraiConsole() {
         super(new JvmPluginDescriptionBuilder(
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
@@ -47,12 +50,18 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
 //        关闭所有游戏连接线程
         getLogger().info("=================================================================");
-        getLogger().info("开始关闭所有连接进程");
+        getLogger().info("开始关闭所有连接线程");
         for (Session session : sessions) {
             session.sendClosePacketToMinecraftThread("bot执行退出bot进程指令");
             while (session.getMinecraftThreads().size() != 0) {}
         }
-        getLogger().info("所有连接进程关闭完成");
+        getLogger().info("所有连接线程关闭完成");
+
+        while (serverMainThread.isAlive()) {
+            serverMainThread.close();
+        }
+        getLogger().info("监听线程关闭完成");
+        getLogger().info("=================================================================");
     }
 
     @Override
@@ -85,7 +94,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
             e.printStackTrace();
         }
 
-        new ServerMainThread(getLogger()).start();
+        serverMainThread.start();
 
     }
 
