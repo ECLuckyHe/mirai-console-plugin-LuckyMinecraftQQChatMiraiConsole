@@ -64,6 +64,8 @@ public class ReplacePlaceholderUtil {
         return sb.toString();
     }
 
+    @Deprecated
+    @SuppressWarnings("过时的方法，请使用同类的replacePlaceholderWithString方法")
     public static MessageChain groupMessageReplace(
             String sessionName,
             String formatString,

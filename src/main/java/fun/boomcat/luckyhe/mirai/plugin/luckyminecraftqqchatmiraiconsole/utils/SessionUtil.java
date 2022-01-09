@@ -5,12 +5,14 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.excepti
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.message.data.MessageChain;
+import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.FileNotFoundException;
 import java.util.List;
 
 public class SessionUtil {
     private static List<Session> sessions;
+    private static MiraiLogger logger = MiraiLoggerUtil.getLogger();
 
     public static List<Session> getSessions() throws FileNotFoundException {
         if (sessions == null) {
@@ -48,5 +50,14 @@ public class SessionUtil {
         for (Session session : sessions) {
             session.sendMessageFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
         }
+    }
+
+    public static void closeAllConnections() {
+        logger.info("开始关闭所有连接线程");
+        for (Session session : sessions) {
+            session.sendClosePacketToMinecraftThread("bot执行退出bot进程指令");
+            while (session.getMinecraftThreads().size() != 0) {}
+        }
+        logger.info("所有连接线程关闭完成");
     }
 }
