@@ -11,11 +11,13 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.Q
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.message.data.MessageChain;
+import net.mamoe.mirai.message.data.MessageChainBuilder;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 public class Session {
     private final long id;
@@ -23,6 +25,15 @@ public class Session {
     private final List<SessionGroup> groups;
     private final String formatString;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
+
+    public boolean hasGroup(long groupId) {
+        for (SessionGroup group : groups) {
+            if (group.getId() == groupId) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public void sendClosePacketToMinecraftThread(String info) {
         for (MinecraftConnectionThread thread : minecraftThreads) {
@@ -164,6 +175,11 @@ public class Session {
             return;
         }
 
+        Random random = new Random();
+//        此处思路：先将%message%替换为%message%xxxx，其中xxxx是数字
+//        在后面再替换%message%xxxx为实际消息内容
+        String messagePlaceholder = QqFormatPlaceholder.MESSAGE + random.nextLong();
+
         String res = ReplacePlaceholderUtil.replacePlaceholderWithString(
                 formatString,
                 QqFormatPlaceholder.SESSION_NAME,
@@ -179,15 +195,28 @@ public class Session {
                 QqFormatPlaceholder.SENDER_NICKNAME,
                 senderNickname,
                 QqFormatPlaceholder.SENDER_GROUP_NICKNAME,
-                senderGroupNickname,
+                senderGroupNickname.equals("") ? senderNickname : senderGroupNickname,
                 QqFormatPlaceholder.MESSAGE,
-                message.contentToString()
+                messagePlaceholder
         );
+
+        String[] splitTempRes = res.split(messagePlaceholder, -1);
+        MessageChainBuilder mcb = new MessageChainBuilder();
+        if (splitTempRes.length <= 1) {
+            mcb.append(res);
+        } else {
+            for (int i = 0; i < splitTempRes.length; i++) {
+                mcb.append(splitTempRes[i]);
+                if (!(i == splitTempRes.length - 1)) {
+                    mcb.append(message);
+                }
+            }
+        }
 
         for (SessionGroup group : groups) {
             if (group.getId() != groupId) {
                 try {
-                    bot.getGroupOrFail(group.getId()).sendMessage(res);
+                    bot.getGroupOrFail(group.getId()).sendMessage(mcb.build());
                 } catch (NoSuchElementException ignored) {
 
                 }
@@ -208,6 +237,14 @@ public class Session {
             }
         }
         return null;
+    }
+
+    public void sendMessageToGroup(long groupId, String message) {
+        try {
+            Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(message);
+        } catch (Exception e) {
+
+        }
     }
 
     public long getId() {

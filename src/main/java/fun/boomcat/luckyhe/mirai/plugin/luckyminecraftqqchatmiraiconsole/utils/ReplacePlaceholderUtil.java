@@ -65,7 +65,7 @@ public class ReplacePlaceholderUtil {
     }
 
     @Deprecated
-    @SuppressWarnings("过时的方法，请使用同类的replacePlaceholderWithString方法")
+    @SuppressWarnings("过时的方法，请使用同类的replacePlaceholderWithString方法（原生消息替换已修改至Session方法中）")
     public static MessageChain groupMessageReplace(
             String sessionName,
             String formatString,

@@ -122,6 +122,8 @@ public class ServerMainThread extends Thread {
                 continue;
             }
 
+            logger.info("请求会话号" + minecraftConnectionThread.getSessionId().getValue() + "，服务器名称：" + minecraftConnectionThread.getServerName().getContent());
+
 //            获取对应session
             Session session;
             try {
@@ -129,6 +131,7 @@ public class ServerMainThread extends Thread {
             } catch (SessionDataNotExistException e) {
 //                发送错误信息数据包
                 try {
+                    logger.error("没有会话号为" + minecraftConnectionThread.getSessionId().getValue() + "的会话");
                     outputStream.write(ConnectionPacketSendUtil.getErrorPacket("没有会话号为" + minecraftConnectionThread.getSessionId().getValue() + "的会话").getBytes());
                     outputStream.flush();
                 } catch (IOException ex) {

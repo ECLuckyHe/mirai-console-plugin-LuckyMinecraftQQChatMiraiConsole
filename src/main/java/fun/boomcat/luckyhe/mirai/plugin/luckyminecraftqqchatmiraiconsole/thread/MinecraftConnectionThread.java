@@ -10,13 +10,12 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Se
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
+import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.Queue;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 
@@ -310,7 +309,40 @@ public class MinecraftConnectionThread extends Thread {
                                 );
                                 break;
                             case 0x21:
-//                                收到在线玩家信息数据包时 todo
+//                                收到在线玩家信息数据包时
+                                VarLong groupId = new VarLong(packet.getData());
+
+                                if (!(session.hasGroup(groupId.getValue()))) {
+                                    break;
+                                }
+
+                                int len = groupId.getBytesLength();
+                                VarInt onlinePlayers = new VarInt(Arrays.copyOfRange(packet.getData(), len, packet.getData().length));
+                                len += onlinePlayers.getBytesLength();
+
+                                List<VarIntString> playerIds = new ArrayList<>();
+                                for (int i = 0; i < onlinePlayers.getValue(); i++) {
+                                    VarIntString player = new VarIntString(Arrays.copyOfRange(packet.getData(), len, packet.getData().length));
+                                    len += player.getBytesLength();
+                                    playerIds.add(player);
+                                }
+
+                                StringBuilder onlinePlayerInfo = new StringBuilder();
+                                onlinePlayerInfo.append("[").append(serverName.getContent()).append("] ");
+                                onlinePlayerInfo.append("当前有").append(onlinePlayers.getValue()).append("人在线");
+
+                                for (int i = 0; i < playerIds.size(); i++) {
+                                    if (i == 0) {
+                                        onlinePlayerInfo.append("：\n");
+                                    }
+                                    onlinePlayerInfo.append(playerIds.get(i).getContent());
+                                    if (!(i == playerIds.size() - 1)) {
+                                        onlinePlayerInfo.append("\n");
+                                    }
+                                }
+//                                发送消息到群内
+                                session.sendMessageToGroup(groupId.getValue(), onlinePlayerInfo.toString());
+
                                 break;
                         }
                     }
