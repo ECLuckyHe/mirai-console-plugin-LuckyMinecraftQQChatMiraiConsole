@@ -61,7 +61,7 @@ public class SessionDataOperation {
 
         sessionDataList = null;
 //        此处需调用一个关闭所有会话连接的操作
-        SessionUtil.closeAllConnections();
+        SessionUtil.closeAllConnections("bot修改会话配置");
 //        清除所有Session对象
         SessionUtil.clear();
     }

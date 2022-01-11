@@ -22,18 +22,19 @@ public class ConnectionPacketSendUtil {
         return getErrorPacket(errorMessage, StandardCharsets.UTF_8);
     }
 
-    public static Packet getCorrectResponsePacket(String sessionName, String address, Charset charset) {
+    public static Packet getCorrectResponsePacket(String sessionName, String address, Charset charset, int heartbeatGap) {
         VarInt packetId = new VarInt(0x00);
         VarIntString sessionNameString = new VarIntString(sessionName, charset);
         VarIntString addressString = new VarIntString(address, charset);
+        VarInt heartbeat = new VarInt(heartbeatGap);
         return new Packet(
-                new VarInt(packetId.getBytesLength() + sessionNameString.getBytesLength(charset) + addressString.getBytesLength(charset)),
+                new VarInt(packetId.getBytesLength() + sessionNameString.getBytesLength(charset) + addressString.getBytesLength(charset) + heartbeat.getBytesLength()),
                 packetId,
-                ByteUtil.byteMergeAll(sessionNameString.getBytes(charset), addressString.getBytes(charset))
+                ByteUtil.byteMergeAll(sessionNameString.getBytes(charset), addressString.getBytes(charset), heartbeat.getBytes())
         );
     }
 
-    public static Packet getCorrectResponsePacket(String sessionName, String address) {
-        return getCorrectResponsePacket(sessionName, address, StandardCharsets.UTF_8);
+    public static Packet getCorrectResponsePacket(String sessionName, String address, int heartbeatGrp) {
+        return getCorrectResponsePacket(sessionName, address, StandardCharsets.UTF_8, heartbeatGrp);
     }
 }

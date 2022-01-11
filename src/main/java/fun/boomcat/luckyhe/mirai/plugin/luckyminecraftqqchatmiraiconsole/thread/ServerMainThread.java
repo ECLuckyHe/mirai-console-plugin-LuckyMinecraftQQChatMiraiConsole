@@ -160,7 +160,8 @@ public class ServerMainThread extends Thread {
             try {
                 outputStream.write(ConnectionPacketSendUtil.getCorrectResponsePacket(
                         session.getName(),
-                        socket.getRemoteSocketAddress().toString()
+                        socket.getRemoteSocketAddress().toString(),
+                        ConfigOperation.getHeartbeat()
                 ).getBytes());
                 outputStream.flush();
             } catch (IOException e) {

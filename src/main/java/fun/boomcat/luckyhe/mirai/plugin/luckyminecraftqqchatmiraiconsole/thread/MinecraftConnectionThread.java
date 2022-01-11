@@ -309,6 +309,9 @@ public class MinecraftConnectionThread extends Thread {
                                         )
                                 );
                                 break;
+                            case 0x21:
+//                                收到在线玩家信息数据包时 todo
+                                break;
                         }
                     }
                 } catch (Exception e) {

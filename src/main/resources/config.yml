@@ -3,3 +3,7 @@ port: 54100
 
 # 心跳包间隔（秒）
 heartbeat: 5
+
+# 获取在线玩家指令
+getOnlinePlayersCommand:
+  - "/list"

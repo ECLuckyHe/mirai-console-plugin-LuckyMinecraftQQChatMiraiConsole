@@ -1,5 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo;
 
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarInt;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarIntString;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarLong;
@@ -11,6 +12,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.R
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.message.data.MessageChain;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -80,8 +82,20 @@ public class Session {
             String senderNickname,
             String senderGroupNickname,
             MessageChain message
-    ) {
+    ) throws FileNotFoundException {
 //        处理从群来的消息
+
+//        如果消息是该内容的时候发送获取在线玩家信息数据
+        if (ConfigOperation.getOnlinePlayersCommand().contains(message.contentToString())) {
+            VarInt onlinePlayersPacketId = new VarInt(0x21);
+            VarLong groupIdLong = new VarLong(groupId);
+            sendPacket(new Packet(
+                    new VarInt(onlinePlayersPacketId.getBytesLength() + groupIdLong.getBytesLength()),
+                    onlinePlayersPacketId,
+                    groupIdLong.getBytes()
+            ));
+        }
+
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
         sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message.contentToString());
     }
@@ -178,6 +192,12 @@ public class Session {
 
                 }
             }
+        }
+    }
+
+    private void sendPacket(Packet packet) {
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            thread.addSendQueue(packet);
         }
     }
 

@@ -4,6 +4,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 public class ConfigOperation {
@@ -51,5 +52,9 @@ public class ConfigOperation {
 
     public static int getHeartbeat() throws FileNotFoundException {
         return (int) getConfigMap().get("heartbeat");
+    }
+
+    public static List<String> getOnlinePlayersCommand() throws FileNotFoundException {
+        return (List<String>) getConfigMap().get("getOnlinePlayersCommand");
     }
 }

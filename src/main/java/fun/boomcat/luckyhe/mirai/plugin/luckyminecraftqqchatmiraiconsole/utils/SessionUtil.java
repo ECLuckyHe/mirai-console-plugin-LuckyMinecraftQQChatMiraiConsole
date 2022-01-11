@@ -52,10 +52,10 @@ public class SessionUtil {
         }
     }
 
-    public static void closeAllConnections() {
+    public static void closeAllConnections(String info) {
         logger.info("开始关闭所有连接线程");
         for (Session session : sessions) {
-            session.sendClosePacketToMinecraftThread("bot执行退出bot进程指令");
+            session.sendClosePacketToMinecraftThread(info);
             while (session.getMinecraftThreads().size() != 0) {}
         }
         logger.info("所有连接线程关闭完成");

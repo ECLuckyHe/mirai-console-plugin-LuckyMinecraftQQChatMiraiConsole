@@ -51,13 +51,13 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 //        关闭所有游戏连接线程
         getLogger().info("=================================================================");
 
-        SessionUtil.closeAllConnections();
-
         while (serverMainThread.isAlive()) {
             serverMainThread.close();
         }
-        
         getLogger().info("监听线程关闭完成");
+
+        SessionUtil.closeAllConnections("bot执行退出bot进程指令");
+        getLogger().info("已关闭所有线程");
         getLogger().info("=================================================================");
     }
 
