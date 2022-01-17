@@ -56,7 +56,12 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
         getLogger().info("监听线程关闭完成");
 
-        SessionUtil.closeAllConnections("bot执行退出bot进程指令");
+        try {
+            SessionUtil.closeAllConnections("bot执行退出bot进程指令");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
         getLogger().info("已关闭所有线程");
         getLogger().info("=================================================================");
     }

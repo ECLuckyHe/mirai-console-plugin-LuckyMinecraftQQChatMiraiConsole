@@ -12,6 +12,7 @@ import net.mamoe.mirai.utils.MiraiLogger;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Date;
 
 public class ServerMainThread extends Thread {
     private final MiraiLogger logger;
@@ -51,6 +52,14 @@ public class ServerMainThread extends Thread {
         }
 
         logger.info("Server Socket开启成功，监听端口为" + port);
+        for (int i = 10; i > 0; i--) {
+            logger.info(i + "秒后开始监听请求");
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 
         while (isRunning) {
             logger.info("开始监听来自" + port + "端口的请求");
@@ -183,6 +192,9 @@ public class ServerMainThread extends Thread {
             logger.info("来自" + socket.getRemoteSocketAddress() + "的连接数据包验证完成，数据正确，进入通信阶段");
             minecraftConnectionThread.setDaemon(false);
             minecraftConnectionThread.start();
+
+//            向群内公告此连接
+            session.sendMessageToAllGroups("有Minecraft服务端接入会话！\n会话名：" + session.getName() +"\n服务端名称：" + minecraftConnectionThread.getServerName().getContent() + "\n地址：" + minecraftConnectionThread.getServerAddress() + "\n时间：" + new Date());
 
 //            添加到同一会话的线程列表和传入会话对象
             session.addMinecraftThread(minecraftConnectionThread);

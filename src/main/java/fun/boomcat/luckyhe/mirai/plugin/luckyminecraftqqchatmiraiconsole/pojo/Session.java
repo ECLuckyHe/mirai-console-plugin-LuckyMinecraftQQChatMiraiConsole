@@ -247,6 +247,16 @@ public class Session {
         }
     }
 
+    public void sendMessageToAllGroups(String message) {
+        for (SessionGroup group : groups) {
+            try {
+                Bot.getInstances().get(0).getGroupOrFail(group.getId()).sendMessage(message);
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
     public long getId() {
         return id;
     }

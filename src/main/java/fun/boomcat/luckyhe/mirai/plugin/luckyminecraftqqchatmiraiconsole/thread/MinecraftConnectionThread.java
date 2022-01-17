@@ -10,7 +10,6 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Se
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
-import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -37,15 +36,13 @@ public class MinecraftConnectionThread extends Thread {
 
     private final Queue<Packet> sendQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Packet> receiveQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
     private final OutputStream outputStream;
 
     private final CountDownLatch cdl = new CountDownLatch(4);
-
-//    发送ping包后修改该值，若响应正确则重新置为0
-    private Long pingNumber = 0L;
 
     public String getStringWithPrefix(String threadName, String info) {
         return "[" + serverName.getContent() + serverAddress + "][" + threadName + "] " + info;
@@ -158,10 +155,10 @@ public class MinecraftConnectionThread extends Thread {
                     }
                 }
 
-                if (pingNumber != 0) {
-//                    对方未回应的情况（如果对方回应了，pingNumber应该为0）
+                if (pingQueue.size() >= 3) {
                     isConnected = false;
-                    logError(threadName, "对方未回应心跳包，开始关闭Socket");
+
+                    logError(threadName, "对方已经连续未回应" + pingQueue.size() + "次心跳包，开始关闭Socket");
 
                     try {
                         socket.close();
@@ -170,14 +167,15 @@ public class MinecraftConnectionThread extends Thread {
                         ex.printStackTrace();
                         logError(threadName, "Socket关闭失败");
                     }
-
-                    break;
                 }
 
 //                生成一个不为0的ping数
+                long pingNumber;
                 do {
                     pingNumber = random.nextLong();
                 } while (pingNumber == 0);
+
+                pingQueue.add(pingNumber);
 
                 VarInt packetId = new VarInt(0x20);
                 VarLong l = new VarLong(pingNumber);
@@ -206,14 +204,22 @@ public class MinecraftConnectionThread extends Thread {
                             case 0x20:
 //                                心跳包接收
                                 VarLong ping = new VarLong(packet.getData());
-                                if (ping.getValue() == pingNumber) {
-                                    pingNumber = 0L;
-                                } else {
-//                                    如果不匹配则直接抛出，让下面的catch捕捉到
+                                Long sent = pingQueue.poll();
+                                if (sent == null) {
+//                                    没有发心跳包却收到了心跳包
+                                    logError(threadName, "并未发送心跳包但收到了回应，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
+
+                                if (!(ping.getValue() == sent)) {
+//                                    如果不匹配则断开连接
                                     logError(threadName, "心跳包回应错误，开始关闭Socket");
                                     isConnected = false;
                                     socket.close();
                                 }
+
                                 break;
                             case 0xF0:
 //                                关闭包接收
@@ -394,6 +400,9 @@ public class MinecraftConnectionThread extends Thread {
 //        从对话撤出该线程
         session.delMinecraftThread(this);
         logInfo("总线程", "已撤除该连接");
+
+//        发送断开连接消息
+        session.sendMessageToAllGroups("有Minecraft服务端断开会话！\n会话名：" + session.getName() + "\n服务端名称：" + serverName.getContent() + "\n地址：" + serverAddress + "\n时间：" + new Date());
     }
 
     public void addSendQueue(Packet packet) {

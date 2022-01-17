@@ -52,9 +52,9 @@ public class SessionUtil {
         }
     }
 
-    public static void closeAllConnections(String info) {
+    public static void closeAllConnections(String info) throws FileNotFoundException {
         logger.info("开始关闭所有连接线程");
-        for (Session session : sessions) {
+        for (Session session : getSessions()) {
             session.sendClosePacketToMinecraftThread(info);
             while (session.getMinecraftThreads().size() != 0) {}
         }
