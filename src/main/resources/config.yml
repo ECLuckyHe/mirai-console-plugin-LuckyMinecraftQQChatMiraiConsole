@@ -3,7 +3,3 @@ port: 54100
 
 # 心跳包间隔（秒）
 heartbeat: 5
-
-# 用于获取在线玩家的指令（群里发送有效）
-getOnlinePlayersCommand:
-  - "/list"

@@ -7,6 +7,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
@@ -27,6 +28,9 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString msgFormatString;
     private final VarIntString deathFormatString;
     private final VarIntString kickFormatString;
+    private final VarIntString[] onlinePlayersCommands;
+    private final VarIntString onlinePlayersCommandResponseFormat;
+    private final VarIntString onlinePlayersCommandResponseSeparator;
 
     private final String serverAddress;
 
@@ -37,6 +41,7 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Packet> sendQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Packet> receiveQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> onlinePlayersCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -62,11 +67,17 @@ public class MinecraftConnectionThread extends Thread {
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength() + string.getBytesLength()), packetId, string.getBytes()));
     }
 
+    public void sendGetOnlinePlayersPacket(long groupId) {
+        onlinePlayersCommandSendGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x21);
+        addSendQueue(new Packet(new VarInt(packetId.getBytesLength()), packetId, new byte[] {}));
+    }
+
     @Override
     public void run() {
 //        发送线程，负责从队列取数据包发送
 //        发送前先确认，若为关闭包，则发送后关闭socket
-        Thread sendThread = new Thread(() -> {
+        AsyncCaller.run(() -> {
             String threadName = "发送";
             logInfo(threadName, "线程启动");
             while (isConnected) {
@@ -103,7 +114,7 @@ public class MinecraftConnectionThread extends Thread {
 
 //        接收线程
 //        将接收的数据放入到队列中
-        Thread receiveThread = new Thread(() -> {
+        AsyncCaller.run(() -> {
             String threadName = "接收";
             logInfo(threadName, "线程启动");
             while (isConnected) {
@@ -134,7 +145,7 @@ public class MinecraftConnectionThread extends Thread {
 
 //        心跳线程
 //        发送心跳包和检测上一次发送的心跳包
-        Thread heartbreakThread = new Thread(() -> {
+        AsyncCaller.run(() -> {
             String threadName = "心跳";
             logInfo(threadName, "线程启动");
             Random random = new Random();
@@ -193,7 +204,7 @@ public class MinecraftConnectionThread extends Thread {
 
 //        接收处理线程
 //        从队列中取出接收的内容并处理
-        Thread receiveHandlerThread = new Thread(() -> {
+        AsyncCaller.run(() -> {
             String threadName = "接收处理";
             logInfo(threadName, "线程启动");
             while (isConnected) {
@@ -316,15 +327,17 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             case 0x21:
 //                                收到在线玩家信息数据包时
-                                VarLong groupId = new VarLong(packet.getData());
-
-                                if (!(session.hasGroup(groupId.getValue()))) {
+                                Long getOnlineGroup = onlinePlayersCommandSendGroupQueue.poll();
+                                if (getOnlineGroup == null) {
+//                                    没有人发送获取在线玩家列表数据包却收到了
+                                    logError(threadName, "没有人发送获取在线玩家列表数据包但却收到了玩家列表数据包，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
                                     break;
                                 }
 
-                                int len = groupId.getBytesLength();
-                                VarInt onlinePlayers = new VarInt(Arrays.copyOfRange(packet.getData(), len, packet.getData().length));
-                                len += onlinePlayers.getBytesLength();
+                                VarInt onlinePlayers = new VarInt(packet.getData());
+                                int len = onlinePlayers.getBytesLength();
 
                                 List<VarIntString> playerIds = new ArrayList<>();
                                 for (int i = 0; i < onlinePlayers.getValue(); i++) {
@@ -333,22 +346,26 @@ public class MinecraftConnectionThread extends Thread {
                                     playerIds.add(player);
                                 }
 
-                                StringBuilder onlinePlayerInfo = new StringBuilder();
-                                onlinePlayerInfo.append("[").append(serverName.getContent()).append("] ");
-                                onlinePlayerInfo.append("当前有").append(onlinePlayers.getValue()).append("人在线");
-
+                                StringBuilder playerIdsString = new StringBuilder();
                                 for (int i = 0; i < playerIds.size(); i++) {
-                                    if (i == 0) {
-                                        onlinePlayerInfo.append("：\n");
-                                    }
-                                    onlinePlayerInfo.append(playerIds.get(i).getContent());
-                                    if (!(i == playerIds.size() - 1)) {
-                                        onlinePlayerInfo.append("\n");
+                                    playerIdsString.append(playerIds.get(i).getContent());
+                                    if (i != playerIds.size() - 1) {
+                                        playerIdsString.append(onlinePlayersCommandResponseSeparator.getContent());
                                     }
                                 }
-//                                发送消息到群内
-                                session.sendMessageToGroup(groupId.getValue(), onlinePlayerInfo.toString());
 
+                                String res = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                        onlinePlayersCommandResponseFormat.getContent(),
+                                        MinecraftFormatPlaceholder.SERVER_NAME,
+                                        serverName.getContent(),
+                                        MinecraftFormatPlaceholder.PLAYERS,
+                                        playerIdsString.toString(),
+                                        MinecraftFormatPlaceholder.COUNT,
+                                        String.valueOf(playerIds.size())
+                                );
+
+//                                发送消息到群内
+                                session.sendMessageToGroup(getOnlineGroup, res);
                                 break;
                         }
                     }
@@ -370,12 +387,6 @@ public class MinecraftConnectionThread extends Thread {
             cdl.countDown();
             logInfo(threadName, "结束工作");
         });
-
-//        启动线程
-        sendThread.start();
-        receiveThread.start();
-        heartbreakThread.start();
-        receiveHandlerThread.start();
 
 //        等待所有线程结束
         try {
@@ -421,7 +432,23 @@ public class MinecraftConnectionThread extends Thread {
         return serverName;
     }
 
-    public MinecraftConnectionThread(Socket socket, VarLong sessionId, VarIntString serverName, VarIntString joinFormatString, VarIntString quitFormatString, VarIntString msgFormatString, VarIntString deathFormatString, VarIntString kickFormatString) throws IOException {
+    public VarIntString[] getOnlinePlayersCommands() {
+        return onlinePlayersCommands;
+    }
+
+    public MinecraftConnectionThread(
+            Socket socket,
+            VarLong sessionId,
+            VarIntString serverName,
+            VarIntString joinFormatString,
+            VarIntString quitFormatString,
+            VarIntString msgFormatString,
+            VarIntString deathFormatString,
+            VarIntString kickFormatString,
+            VarIntString[] onlinePlayersCommands,
+            VarIntString onlinePlayersCommandResponseFormat,
+            VarIntString onlinePlayersCommandResponseSeparator
+    ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
         this.serverName = serverName;
@@ -430,6 +457,9 @@ public class MinecraftConnectionThread extends Thread {
         this.msgFormatString = msgFormatString;
         this.deathFormatString = deathFormatString;
         this.kickFormatString = kickFormatString;
+        this.onlinePlayersCommands = onlinePlayersCommands;
+        this.onlinePlayersCommandResponseFormat = onlinePlayersCommandResponseFormat;
+        this.onlinePlayersCommandResponseSeparator = onlinePlayersCommandResponseSeparator;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());

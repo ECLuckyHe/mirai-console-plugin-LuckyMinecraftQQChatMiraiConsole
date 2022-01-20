@@ -97,14 +97,13 @@ public class Session {
 //        处理从群来的消息
 
 //        如果消息是该内容的时候发送获取在线玩家信息数据
-        if (ConfigOperation.getOnlinePlayersCommand().contains(message.contentToString())) {
-            VarInt onlinePlayersPacketId = new VarInt(0x21);
-            VarLong groupIdLong = new VarLong(groupId);
-            sendPacket(new Packet(
-                    new VarInt(onlinePlayersPacketId.getBytesLength() + groupIdLong.getBytesLength()),
-                    onlinePlayersPacketId,
-                    groupIdLong.getBytes()
-            ));
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            VarIntString[] onlinePlayersCommands = thread.getOnlinePlayersCommands();
+            for (VarIntString onlinePlayersCommand : onlinePlayersCommands) {
+                if (onlinePlayersCommand.getContent().equals(message.contentToString())) {
+                    thread.sendGetOnlinePlayersPacket(groupId);
+                }
+            }
         }
 
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);

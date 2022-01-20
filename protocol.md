@@ -12,25 +12,29 @@
 Client应该连接后主动发送此数据包。  
 包ID: **0x00**
 
-| 项目                | 类型             | 描述            |
-|-------------------|----------------|---------------|
-| sessionId         | `VarLong`      | 会话号           |
-| serverName        | `VarIntString` | 服务器名称         |
-| joinFormatString  | `VarIntString` | 玩家进入游戏消息格式    |
-| quitFormatString  | `VarIntString` | 玩家退出游戏消息格式    |
-| msgFormatString   | `VarIntString` | 玩家发送消息的消息格式   |
-| deathFormatString | `VarIntString` | 玩家死亡的消息格式     |
-| kickFormatString  | `VarIntString` | 玩家被踢出服务器的消息格式 |
+| 项目                                       | 类型               | 描述            |
+|------------------------------------------|------------------|---------------|
+| sessionId                                | `VarLong`        | 会话号           |
+| serverName                               | `VarIntString`   | 服务器名称         |
+| joinFormatString                         | `VarIntString`   | 玩家进入游戏消息格式    |
+| quitFormatString                         | `VarIntString`   | 玩家退出游戏消息格式    |
+| msgFormatString                          | `VarIntString`   | 玩家发送消息的消息格式   |
+| deathFormatString                        | `VarIntString`   | 玩家死亡的消息格式     |
+| kickFormatString                         | `VarIntString`   | 玩家被踢出服务器的消息格式 |
+| getOnlinePlayersCommandsCount            | `VarInt`         | 获取在线玩家列表的指令数  |
+| getOnlinePlayersCommands                 | `VarIntString[]` | 在线玩家指令        |
+| getOnlinePlayersCommandResponseFormat    | `VarIntString`   | 在线玩家列表消息格式    |
+| getOnlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符 |
 
 #### 往Client
 对往Server的**0x00**包的回应，表示用于连接的数据包格式正确，连接成功。  
 包ID: **0x00**
 
-| 项目           | 类型             | 描述            |
-|--------------|----------------|---------------|
-| sessionName  | `VarIntString` | 会话名           |
-| address      | `VarIntString` | bot收到的连接的远程地址 |
-| heartbeatGap | `VarInt`       | 心跳包间隔         |
+| 项目                | 类型             | 描述            |
+|-------------------|----------------|---------------|
+| sessionName       | `VarIntString` | 会话名           |
+| address           | `VarIntString` | bot收到的连接的远程地址 |
+| heartbeatInterval | `VarInt`       | 心跳包间隔         |
 <br>
 
 
@@ -77,9 +81,9 @@ Pong，回应Ping包。
 要求发送在线玩家信息数据的数据包。  
 包ID: **0x21**
 
-| 项目      | 类型        | 描述      |
-|---------|-----------|---------|
-| groupId | `VarLong` | 消息来自的群号 |
+| 项目  | 类型  | 描述  |
+|-----|-----|-----|
+| 无   |     |     |
 <br>
 
 
@@ -147,14 +151,10 @@ Ping包。
 在线玩家信息数据，当服务端要求包**0x21**时才发送。  
 包ID: **0x21**
 
-| 项目            | 类型             | 描述            |
-|---------------|----------------|---------------|
-| groupId       | `VarLong`      | 要求获取在线玩家信息的群号 |
-| onlinePlayers | `VarInt`       | 在线玩家数（假设是n）   |
-| playerName 1  | `VarIntString` | 玩家1的ID        |
-| playerName 2  | `VarIntString` | 玩家2的ID        |
-| ……            | `VarIntString` | ……            |
-| playerName n  | `VarIntString` | 玩家n的ID        |
+| 项目            | 类型               | 描述          |
+|---------------|------------------|-------------|
+| onlinePlayers | `VarInt`         | 在线玩家数（假设是n） |
+| playerNames   | `VarIntString[]` | 玩家的ID       |
 <br>
 
 关闭连接，当关闭时发送，并携带关闭信息，发送后直接关闭。  

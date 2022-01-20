@@ -7,4 +7,7 @@ public class MinecraftFormatPlaceholder {
     public static String KICK_REASON = "%kickReason%";
 
     public static String SERVER_NAME = "%serverName%";
+
+    public static String PLAYERS = "%players%";
+    public static String COUNT = "%count%";
 }

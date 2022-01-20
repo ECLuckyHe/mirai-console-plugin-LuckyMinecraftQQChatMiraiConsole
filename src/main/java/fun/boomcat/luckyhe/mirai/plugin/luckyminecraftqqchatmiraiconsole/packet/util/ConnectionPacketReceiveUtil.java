@@ -54,6 +54,18 @@ public class ConnectionPacketReceiveUtil {
         index += deathFormatString.getBytesLength(charset);
         VarIntString kickFormatString = new VarIntString(Arrays.copyOfRange(data, index, data.length));
         index += kickFormatString.getBytesLength(charset);
+        VarInt onlinePlayersCommandsCount = new VarInt(Arrays.copyOfRange(data, index, data.length));
+        index += onlinePlayersCommandsCount.getBytesLength();
+        VarIntString[] onlinePlayersCommands = new VarIntString[onlinePlayersCommandsCount.getValue()];
+        for (int i = 0; i < onlinePlayersCommands.length; i++) {
+            VarIntString onlinePlayersCommand = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+            onlinePlayersCommands[i] = onlinePlayersCommand;
+            index += onlinePlayersCommand.getBytesLength(charset);
+        }
+        VarIntString onlinePlayersCommandResponseFormat = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += onlinePlayersCommandResponseFormat.getBytesLength(charset);
+        VarIntString onlinePlayersCommandResponseSeparator = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += onlinePlayersCommandResponseSeparator.getBytesLength(charset);
 
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
@@ -67,7 +79,10 @@ public class ConnectionPacketReceiveUtil {
                 quitFormatString,
                 msgFormatString,
                 deathFormatString,
-                kickFormatString
+                kickFormatString,
+                onlinePlayersCommands,
+                onlinePlayersCommandResponseFormat,
+                onlinePlayersCommandResponseSeparator
         );
     }
 
