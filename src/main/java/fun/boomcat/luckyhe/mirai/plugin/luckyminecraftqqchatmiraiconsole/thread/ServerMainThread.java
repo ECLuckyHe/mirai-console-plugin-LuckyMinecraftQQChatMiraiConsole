@@ -169,6 +169,58 @@ public class ServerMainThread extends Thread {
                 continue;
             }
 
+            String serverName = minecraftConnectionThread.getServerName().getContent();
+            if (serverName.contains(" ") || serverName.contains("\n") || serverName.contains("\r")) {
+                try {
+                    logger.error("服务器名称不要携带分隔符（如空格，换行符等）");
+                    outputStream.write(ConnectionPacketSendUtil.getErrorPacket("服务器名称不要携带分隔符（如空格，换行符等）").getBytes());
+                    outputStream.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    logger.error("在发送错误信息数据包时发生错误");
+
+                    try {
+                        socket.close();
+                    } catch (IOException exc) {
+                        exc.printStackTrace();
+                    }
+                }
+
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+
+                continue;
+            }
+
+//            判断该会话中是否已经存在同名MC服务器，如果存在，则拒绝连接
+            if (session.isMinecraftServerNameExist(minecraftConnectionThread.getServerName().getContent())) {
+                try {
+                    logger.error("携带的服务器名称" + minecraftConnectionThread.getServerName().getContent() + "已经接入了会话");
+                    outputStream.write(ConnectionPacketSendUtil.getErrorPacket("携带的服务器名称" + minecraftConnectionThread.getServerName().getContent() + "已经接入了会话").getBytes());
+                    outputStream.flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    logger.error("在发送错误信息数据包时发生错误");
+
+                    try {
+                        socket.close();
+                    } catch (IOException exc) {
+                        exc.printStackTrace();
+                    }
+                }
+
+                try {
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+
+                continue;
+            }
+
             try {
                 outputStream.write(ConnectionPacketSendUtil.getCorrectResponsePacket(
                         session.getName(),

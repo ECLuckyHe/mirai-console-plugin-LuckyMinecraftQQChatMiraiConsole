@@ -5,6 +5,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.excepti
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
@@ -20,7 +21,7 @@ public class SessionCommandHandler {
     public static void selectSession(Object[] args, CommandSender commandSender, String primaryName, String[] secondaryNames) {
         int len = args.length;
         if (len == 0) {
-            commandSender.sendMessage(SessionCommandUtil.sessionHelp(primaryName, secondaryNames));
+            commandSender.sendMessage(OpMcChatCommandUtil.sessionHelp(primaryName, secondaryNames));
             return;
         }
 
@@ -58,8 +59,16 @@ public class SessionCommandHandler {
                         secondaryNames
                 );
                 break;
+            case "announce":
+                selectAnnounce(
+                        Arrays.copyOfRange(args, 1, len),
+                        commandSender,
+                        primaryName,
+                        secondaryNames
+                );
+                break;
             default:
-                commandSender.sendMessage(SessionCommandUtil.sessionHelp(primaryName, secondaryNames));
+                commandSender.sendMessage(OpMcChatCommandUtil.sessionHelp(primaryName, secondaryNames));
                 return;
         }
     }
@@ -304,7 +313,7 @@ public class SessionCommandHandler {
     private static void selectModify(Object[] args, CommandSender commandSender, String primaryName, String[] secondaryNames) {
         int len = args.length;
         if (len == 0) {
-            commandSender.sendMessage(SessionCommandUtil.modifyHelp(primaryName, secondaryNames));
+            commandSender.sendMessage(OpMcChatCommandUtil.modifyHelp(primaryName, secondaryNames));
             return;
         }
 
@@ -375,7 +384,7 @@ public class SessionCommandHandler {
                 );
                 break;
             default:
-                commandSender.sendMessage(SessionCommandUtil.modifyHelp(primaryName, secondaryNames));
+                commandSender.sendMessage(OpMcChatCommandUtil.modifyHelp(primaryName, secondaryNames));
                 break;
         }
 
@@ -561,5 +570,127 @@ public class SessionCommandHandler {
         }
         commandSender.sendMessage("会话号：" + sessionData.get("id") + "\n会话备注：" + sessionData.get("name") + "\n群号：" + sessionData.get("groups") + "\n消息格式：" + sessionData.get("format"));
 
+    }
+
+    private static void selectAnnounce(Object[] args, CommandSender commandSender, String primaryName, String[] secondaryNames) {
+//        处理发送消息相关
+        int len = args.length;
+        if (len == 0) {
+            commandSender.sendMessage(OpMcChatCommandUtil.announceHelp(primaryName, secondaryNames));
+            return;
+        }
+
+        String sessionIdString = args[0].toString();
+        long sessionId;
+        try {
+            sessionId = Long.parseLong(sessionIdString);
+        } catch (NumberFormatException e) {
+            commandSender.sendMessage("会话号为整数而不是" + sessionIdString);
+            return;
+        }
+
+        Session session;
+        try {
+            session = SessionUtil.getSession(sessionId);
+        } catch (SessionDataNotExistException e) {
+            commandSender.sendMessage("没有会话号为" + sessionId + "的会话");
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+            commandSender.sendMessage("出现异常，请稍后重试");
+            return;
+        }
+
+        String operation;
+        try {
+            operation = args[1].toString();
+        } catch (IndexOutOfBoundsException e) {
+            commandSender.sendMessage("请传入操作");
+            return;
+        }
+
+        switch (operation) {
+            case "mc":
+                selectAnnounceMc(
+                        Arrays.copyOfRange(args, 2, len),
+                        commandSender,
+                        session,
+                        primaryName,
+                        secondaryNames
+                );
+                break;
+            case "mcall":
+                selectAnnounceMcAll(
+                        Arrays.copyOfRange(args, 2, len),
+                        commandSender,
+                        session,
+                        primaryName,
+                        secondaryNames
+                );
+                break;
+            default:
+                commandSender.sendMessage(OpMcChatCommandUtil.announceHelp(primaryName, secondaryNames));
+                return;
+        }
+    }
+
+    private static void selectAnnounceMc(Object[] args, CommandSender commandSender, Session session, String primaryName, String[] secondaryNames) {
+        int len = args.length;
+        if (len == 0) {
+            commandSender.sendMessage("请传入MC端服务器名");
+            return;
+        }
+
+        String serverName = args[0].toString();
+
+        try {
+            args[1].toString();
+        } catch (IndexOutOfBoundsException e) {
+            commandSender.sendMessage("请传入公告内容");
+            return;
+        }
+
+        StringBuilder announcement = new StringBuilder();
+        for (int i = 1; i < args.length; i++) {
+            announcement.append(args[i].toString());
+            if (i == args.length - 1) {
+                announcement.append(" ");
+            }
+        }
+
+        try {
+            session.sendAnnouncementToMinecraftConnection(
+                    commandSender.getUser().getId(),
+                    commandSender.getUser().getNick(),
+                    serverName,
+                    announcement.toString()
+            );
+        } catch (MinecraftThreadNotFoundException e) {
+            commandSender.sendMessage("会话" + session.getId() + "没有名为" + serverName + "的连接");
+        }
+
+        commandSender.sendMessage("已向会话" + session.getId() + "的" + serverName + "连接发送公告：\n" + announcement);
+    }
+
+    private static void selectAnnounceMcAll(Object[] args, CommandSender commandSender, Session session, String primaryName, String[] secondaryNames) {
+        int len = args.length;
+        if (len == 0) {
+            commandSender.sendMessage("请传入公告内容");
+            return;
+        }
+
+        StringBuilder announcement = new StringBuilder();
+        for (int i = 0; i < args.length; i++) {
+            announcement.append(args[i].toString());
+            if (i == args.length - 1) {
+                announcement.append(" ");
+            }
+        }
+
+        session.sendAnnouncementToAllMinecraftConnections(
+                commandSender.getUser().getId(),
+                commandSender.getUser().getNick(),
+                announcement.toString()
+        );
     }
 }

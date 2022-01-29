@@ -1,6 +1,7 @@
 # 协议
 
 ## 数据包结构定义
+
 | 项目          | 类型       | 描述                    |
 |-------------|----------|-----------------------|
 | totalLength | `VarInt` | 以下项目的总长度              |
@@ -8,25 +9,30 @@
 | data        | `byte[]` | 数据字节                  |
 
 ### 连接
+
 #### 往Server
+
 Client应该连接后主动发送此数据包。  
 包ID: **0x00**
 
-| 项目                                       | 类型               | 描述            |
-|------------------------------------------|------------------|---------------|
-| sessionId                                | `VarLong`        | 会话号           |
-| serverName                               | `VarIntString`   | 服务器名称         |
-| joinFormatString                         | `VarIntString`   | 玩家进入游戏消息格式    |
-| quitFormatString                         | `VarIntString`   | 玩家退出游戏消息格式    |
-| msgFormatString                          | `VarIntString`   | 玩家发送消息的消息格式   |
-| deathFormatString                        | `VarIntString`   | 玩家死亡的消息格式     |
-| kickFormatString                         | `VarIntString`   | 玩家被踢出服务器的消息格式 |
-| getOnlinePlayersCommandsCount            | `VarInt`         | 获取在线玩家列表的指令数  |
-| getOnlinePlayersCommands                 | `VarIntString[]` | 在线玩家指令        |
-| getOnlinePlayersCommandResponseFormat    | `VarIntString`   | 在线玩家列表消息格式    |
-| getOnlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符 |
+| 项目                                    | 类型               | 描述            |
+|---------------------------------------|------------------|---------------|
+| sessionId                             | `VarLong`        | 会话号           |
+| serverName                            | `VarIntString`   | 服务器名称         |
+| joinFormatString                      | `VarIntString`   | 玩家进入游戏消息格式    |
+| quitFormatString                      | `VarIntString`   | 玩家退出游戏消息格式    |
+| msgFormatString                       | `VarIntString`   | 玩家发送消息的消息格式   |
+| deathFormatString                     | `VarIntString`   | 玩家死亡的消息格式     |
+| kickFormatString                      | `VarIntString`   | 玩家被踢出服务器的消息格式 |
+| onlinePlayersCommandsCount            | `VarInt`         | 获取在线玩家列表的指令数  |
+| onlinePlayersCommands                 | `VarIntString[]` | 在线玩家指令        |
+| onlinePlayersCommandResponseFormat    | `VarIntString`   | 在线玩家列表消息格式    |
+| onlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符 |
+| rconCommandPrefix                     | `VarIntString`   | rcon指令前缀      |
+| rconCommandResultFormat               | `VarIntString`   | rcon指令返回结果格式  |
 
 #### 往Client
+
 对往Server的**0x00**包的回应，表示用于连接的数据包格式正确，连接成功。  
 包ID: **0x00**
 
@@ -35,6 +41,7 @@ Client应该连接后主动发送此数据包。
 | sessionName       | `VarIntString` | 会话名           |
 | address           | `VarIntString` | bot收到的连接的远程地址 |
 | heartbeatInterval | `VarInt`       | 心跳包间隔         |
+
 <br>
 
 
@@ -45,9 +52,10 @@ Client应该连接后主动发送此数据包。
 |--------------|----------------|--------|
 | errorMessage | `VarIntString` | 错误信息内容 |
 
-
 ### 通信
+
 #### 往Client
+
 消息内容，当群内有消息时发送。  
 包ID: **0x10**
 
@@ -60,6 +68,7 @@ Client应该连接后主动发送此数据包。
 | senderNickname      | `VarIntString` | 发送者昵称      |
 | senderGroupNickname | `VarIntString` | 发送者在群内的昵称  |
 | message             | `VarIntString` | 消息内容       |
+
 <br>
 
 消息内容，此消息将原封不动发至游戏中。  
@@ -68,6 +77,7 @@ Client应该连接后主动发送此数据包。
 | 项目     | 类型             | 描述         |
 |--------|----------------|------------|
 | string | `VarIntString` | 被发送到游戏中的内容 |
+
 <br>
 
 Pong，回应Ping包。  
@@ -76,6 +86,7 @@ Pong，回应Ping包。
 | 项目  | 类型        | 描述          |
 |-----|-----------|-------------|
 | num | `VarLong` | 与Ping包相同的数据 |
+
 <br>
 
 要求发送在线玩家信息数据的数据包。  
@@ -84,6 +95,27 @@ Pong，回应Ping包。
 | 项目  | 类型  | 描述  |
 |-----|-----|-----|
 | 无   |     |     |
+
+<br>
+
+要求执行指令（需要已开启RCON，否则不会发送该数据包）。  
+包ID：**0x22**
+
+| 项目      | 类型             | 描述                   |
+|---------|----------------|----------------------|
+| qq      | `VarLong`      | 发送者的qq（op判断由MC端判断执行） |
+| command | `VarIntString` | 指令内容                 |
+
+<br>
+
+要求发布公告，当客户端收到公告后随机按照格式发送到MC游戏内。  
+包ID：**0x23**
+
+| 项目           | 类型             | 描述     |
+|--------------|----------------|--------|
+| qq           | `VarLong`      | 发送者的qq |
+| nickname     | `VarIntString` | 发送者昵称  |
+| announcement | `VarIntString` | 公告内容   |
 <br>
 
 
@@ -93,16 +125,18 @@ Pong，回应Ping包。
 | 项目     | 类型             | 描述   |
 |--------|----------------|------|
 | string | `VarIntString` | 关闭信息 |
+
 <br>
 
-
 #### 往Server
+
 当玩家加入时发送该包。  
 包ID: **0x10**
 
 | 项目         | 类型             | 描述      |
 |------------|----------------|---------|
 | playerName | `VarIntString` | 加入的玩家ID |
+
 <br>
 
 当玩家离开时发送该包。  
@@ -111,6 +145,7 @@ Pong，回应Ping包。
 | 项目         | 类型             | 描述      |
 |------------|----------------|---------|
 | playerName | `VarIntString` | 离开的玩家ID |
+
 <br>
 
 当玩家在游戏内发送消息时发送该包。  
@@ -120,6 +155,7 @@ Pong，回应Ping包。
 |------------|----------------|-----------|
 | playerName | `VarIntString` | 发送消息的玩家ID |
 | message    | `VarIntString` | 发送的消息内容   |
+
 <br>
 
 当玩家在游戏内死亡时发送该包。  
@@ -129,6 +165,7 @@ Pong，回应Ping包。
 |--------------|----------------|--------|
 | playerName   | `VarIntString` | 死亡玩家ID |
 | deathMessage | `VarIntString` | 死亡信息   |
+
 <br>
 
 当玩家被踢出游戏时发送该包。  
@@ -138,14 +175,16 @@ Pong，回应Ping包。
 |------------|----------------|--------|
 | playerName | `VarIntString` | 被踢玩家ID |
 | kickReason | `VarIntString` | 踢出原因   |
+
 <br>
 
 Ping包。  
 包ID: **0x20**
 
-| 项目  | 类型        | 描述                                    |
-|-----|-----------|---------------------------------------|
-| num | `VarLong` | 生成的数字，要求Client回复相同数字，若超时不回复或数字错误则断开连接 |
+| 项目  | 类型        | 描述                                      |
+|-----|-----------|-----------------------------------------|
+| num | `VarLong` | 生成的随机数字，要求Client回复相同数字，若超时不回复或数字错误则断开连接 |
+
 <br>
 
 在线玩家信息数据，当服务端要求包**0x21**时才发送。  
@@ -155,6 +194,16 @@ Ping包。
 |---------------|------------------|-------------|
 | onlinePlayers | `VarInt`         | 在线玩家数（假设是n） |
 | playerNames   | `VarIntString[]` | 玩家的ID       |
+
+<br>
+
+执行指令返回结果，当服务端要求包**0x22**时才发送。  
+包ID：**0x22**
+
+| 项目            | 类型             | 描述     |
+|---------------|----------------|--------|
+| commandResult | `VarIntString` | 指令执行结果 |
+
 <br>
 
 关闭连接，当关闭时发送，并携带关闭信息，发送后直接关闭。  

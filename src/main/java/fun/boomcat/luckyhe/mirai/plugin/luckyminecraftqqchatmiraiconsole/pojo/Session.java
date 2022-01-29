@@ -1,12 +1,13 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo;
 
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarInt;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarIntString;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarLong;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.QqFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.Bot;
@@ -64,7 +65,7 @@ public class Session {
             try {
 //                此处：只支持登录一个bot
                 Bot.getInstances().get(0).getGroupOrFail(group.getId()).sendMessage(content);
-            } catch (NoSuchElementException ignored) {
+            } catch (Exception ignored) {
 
             }
         }
@@ -96,18 +97,71 @@ public class Session {
     ) throws FileNotFoundException {
 //        处理从群来的消息
 
-//        如果消息是该内容的时候发送获取在线玩家信息数据
+//        发送获取在线玩家信息数据
         for (MinecraftConnectionThread thread : minecraftThreads) {
+//            群号不在
+            boolean found = false;
+            for (SessionGroup group : groups) {
+                if (group.getId() == groupId) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                continue;
+            }
+
             VarIntString[] onlinePlayersCommands = thread.getOnlinePlayersCommands();
             for (VarIntString onlinePlayersCommand : onlinePlayersCommands) {
-                if (onlinePlayersCommand.getContent().equals(message.contentToString())) {
+                if (ReplacePlaceholderUtil.replacePlaceholderWithString(
+                        onlinePlayersCommand.getContent(),
+                        MinecraftFormatPlaceholder.SERVER_NAME,
+                        thread.getServerName().getContent()
+                ).equals(message.contentToString())) {
                     thread.sendGetOnlinePlayersPacket(groupId);
                 }
             }
+
+//            发送指令部分
+            String prefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getRconCommandPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            );
+
+            assert prefix != null;
+            if (!message.contentToString().startsWith(prefix)) {
+                continue;
+            }
+
+            thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(prefix.length()));
         }
 
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
         sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message.contentToString());
+    }
+
+    public void sendAnnouncementToMinecraftConnection(long senderId, String senderNickname, String serverName, String announcement) throws MinecraftThreadNotFoundException {
+        MinecraftConnectionThread targetThread = null;
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            if (thread.getServerName().getContent().equals(serverName)) {
+                targetThread = thread;
+                break;
+            }
+        }
+
+        if (targetThread == null) {
+            throw new MinecraftThreadNotFoundException();
+        }
+
+        targetThread.sendAnnouncementPacket(senderId, senderNickname, announcement);
+    }
+
+    public void sendAnnouncementToAllMinecraftConnections(long senderId, String senderNickname, String announcement) {
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            thread.sendAnnouncementPacket(senderId, senderNickname, announcement);
+        }
     }
 
     private void sendSessionMinecraftThreadsFromGroup(
@@ -216,7 +270,7 @@ public class Session {
             if (group.getId() != groupId) {
                 try {
                     bot.getGroupOrFail(group.getId()).sendMessage(mcb.build());
-                } catch (NoSuchElementException ignored) {
+                } catch (Exception ignored) {
 
                 }
             }
@@ -254,6 +308,25 @@ public class Session {
 
             }
         }
+    }
+
+    public MinecraftConnectionThread getMinecraftThread(String serverName) {
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            if (thread.getServerName().getContent().equals(serverName)) {
+                return thread;
+            }
+        }
+
+        return null;
+    }
+
+    public boolean isMinecraftServerNameExist(String serverName) {
+        for (MinecraftConnectionThread thread : minecraftThreads) {
+            if (thread.getServerName().getContent().equals(serverName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public long getId() {

@@ -1,6 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole;
 
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.McChatCommand;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.OpMcChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
@@ -27,7 +27,7 @@ import java.util.List;
 public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     public static final LuckyMinecraftQQChatMiraiConsole INSTANCE = new LuckyMinecraftQQChatMiraiConsole();
 
-    private Permission mcChatPerm;
+    private Permission opMcChatPerm;
 
 //    监听主线程
     private ServerMainThread serverMainThread = new ServerMainThread(getLogger());
@@ -101,12 +101,12 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     }
 
     private void loadPermissions() {
-        PermissionId mcChatPermId = new PermissionId("luckyminecraftqqchatmiraiconsole", "command.mcchat");
+        PermissionId opMcChatPermId = new PermissionId("luckyminecraftqqchatmiraiconsole", "command.opmcchat");
 
         try {
-            mcChatPerm = PermissionService.getInstance().register(
-                    mcChatPermId,
-                    "mc互通相关指令",
+            opMcChatPerm = PermissionService.getInstance().register(
+                    opMcChatPermId,
+                    "mc互通相关管理指令",
                     Permission.getRootPermission()
             );
         } catch (PermissionRegistryConflictException e) {
@@ -117,14 +117,14 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private void loadCommands() {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
 
-        String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
-        CommandManager.INSTANCE.registerCommand(new McChatCommand(
+        String[] mcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
+        CommandManager.INSTANCE.registerCommand(new OpMcChatCommand(
                 this,
-                "mcchat",
+                "opmcchat",
                 mcChatCommandSecondaryNames,
-                commandPrefix + "mcchat <操作>",
+                commandPrefix + "opmcchat <操作>",
                 "mc互通相关指令",
-                mcChatPerm,
+                opMcChatPerm,
                 false
         ), false);
     }

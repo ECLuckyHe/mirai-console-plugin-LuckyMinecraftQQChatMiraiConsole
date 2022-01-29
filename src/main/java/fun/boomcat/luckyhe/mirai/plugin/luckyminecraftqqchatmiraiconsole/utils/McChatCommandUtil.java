@@ -4,7 +4,7 @@ import net.mamoe.mirai.console.command.CommandManager;
 
 public class McChatCommandUtil {
     public static String mainHelp(String primaryName, String[] secondaryNames) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb =  new StringBuilder();
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
 
         sb.append(commandPrefix).append(primaryName).append("指令 ");
@@ -20,4 +20,6 @@ public class McChatCommandUtil {
 
         return sb.toString();
     }
+
+
 }

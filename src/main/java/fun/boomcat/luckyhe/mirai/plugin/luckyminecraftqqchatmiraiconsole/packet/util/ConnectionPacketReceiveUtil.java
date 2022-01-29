@@ -66,6 +66,10 @@ public class ConnectionPacketReceiveUtil {
         index += onlinePlayersCommandResponseFormat.getBytesLength(charset);
         VarIntString onlinePlayersCommandResponseSeparator = new VarIntString(Arrays.copyOfRange(data, index, data.length));
         index += onlinePlayersCommandResponseSeparator.getBytesLength(charset);
+        VarIntString rconCommandPrefix = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += rconCommandPrefix.getBytesLength(charset);
+        VarIntString rconCommandResultFormat = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += rconCommandResultFormat.getBytesLength(charset);
 
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
@@ -82,7 +86,9 @@ public class ConnectionPacketReceiveUtil {
                 kickFormatString,
                 onlinePlayersCommands,
                 onlinePlayersCommandResponseFormat,
-                onlinePlayersCommandResponseSeparator
+                onlinePlayersCommandResponseSeparator,
+                rconCommandPrefix,
+                rconCommandResultFormat
         );
     }
 

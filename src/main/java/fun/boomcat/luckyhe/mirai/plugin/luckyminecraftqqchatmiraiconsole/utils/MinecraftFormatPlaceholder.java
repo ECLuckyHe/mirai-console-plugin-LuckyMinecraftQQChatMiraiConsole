@@ -10,4 +10,6 @@ public class MinecraftFormatPlaceholder {
 
     public static String PLAYERS = "%players%";
     public static String COUNT = "%count%";
+
+    public static String RESULT = "%result%";
 }

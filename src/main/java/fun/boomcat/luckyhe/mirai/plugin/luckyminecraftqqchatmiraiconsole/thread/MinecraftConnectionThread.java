@@ -5,6 +5,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarIntString;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarLong;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
@@ -31,6 +32,11 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString[] onlinePlayersCommands;
     private final VarIntString onlinePlayersCommandResponseFormat;
     private final VarIntString onlinePlayersCommandResponseSeparator;
+    private final VarIntString rconCommandPrefix;
+    private final VarIntString rconCommandResultFormat;
+
+//    断开原因
+    private String disconnectReason = "异常退出";
 
     private final String serverAddress;
 
@@ -42,6 +48,7 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Packet> receiveQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> onlinePlayersCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> rconCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -67,10 +74,36 @@ public class MinecraftConnectionThread extends Thread {
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength() + string.getBytesLength()), packetId, string.getBytes()));
     }
 
-    public void sendGetOnlinePlayersPacket(long groupId) {
+    public synchronized void sendGetOnlinePlayersPacket(long groupId) {
+//        同步方法防止顺序错误
         onlinePlayersCommandSendGroupQueue.add(groupId);
         VarInt packetId = new VarInt(0x21);
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength()), packetId, new byte[] {}));
+    }
+
+    public synchronized void sendRconCommandPacket(long groupId, long senderId, String command) {
+        rconCommandSendGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x22);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString commandString = new VarIntString(command);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + commandString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), commandString.getBytes())
+        ));
+    }
+
+    public synchronized void sendAnnouncementPacket(long senderId, String senderNickname, String announcement) {
+        VarInt packetId = new VarInt(0x23);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString senderNicknameString = new VarIntString(senderNickname);
+        VarIntString announcementString = new VarIntString(announcement);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + senderNicknameString.getBytesLength() + announcementString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), senderNicknameString.getBytes(), announcementString.getBytes())
+        ));
     }
 
     @Override
@@ -89,7 +122,9 @@ public class MinecraftConnectionThread extends Thread {
 
 //                        如果发送数据包为关闭包
                         if (packet.getId().getValue() == 0xF0) {
-                            logInfo(threadName, "发送关闭包，内容：" + new VarIntString(packet.getData()).getContent());
+                            VarIntString reason = new VarIntString(packet.getData());
+                            logInfo(threadName, "发送关闭包，内容：" + reason.getContent());
+                            disconnectReason = "发送关闭包，内容：" + reason.getContent();
                             isConnected = false;
                             socket.close();
                         }
@@ -170,6 +205,7 @@ public class MinecraftConnectionThread extends Thread {
                     isConnected = false;
 
                     logError(threadName, "对方已经连续未回应" + pingQueue.size() + "次心跳包，开始关闭Socket");
+                    disconnectReason = "对方已经连续未回应" + pingQueue.size() + "次心跳包";
 
                     try {
                         socket.close();
@@ -236,6 +272,7 @@ public class MinecraftConnectionThread extends Thread {
 //                                关闭包接收
                                 VarIntString exitMsg = new VarIntString(packet.getData());
                                 logInfo(threadName, "对方要求断开连接，原因：" + exitMsg.getContent());
+                                disconnectReason = "对方要求断开连接，原因：" + exitMsg.getContent();
                                 isConnected = false;
                                 socket.close();
                                 break;
@@ -367,6 +404,27 @@ public class MinecraftConnectionThread extends Thread {
 //                                发送消息到群内
                                 session.sendMessageToGroup(getOnlineGroup, res);
                                 break;
+
+                            case 0x22:
+//                                指令执行结果
+                                VarIntString commandRes = new VarIntString(packet.getData());
+                                Long commandGroupId = rconCommandSendGroupQueue.poll();
+                                if (commandGroupId == null) {
+//                                    没有人发送指令但却收到了指令回复
+                                    logError(threadName, "没有人发送指令但却收到了指令回复包，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
+
+                                session.sendMessageToGroup(commandGroupId, ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                        rconCommandResultFormat.getContent(),
+                                        MinecraftFormatPlaceholder.SERVER_NAME,
+                                        serverName.getContent(),
+                                        MinecraftFormatPlaceholder.RESULT,
+                                        commandRes.getContent()
+                                ));
+                                break;
                         }
                     }
                 } catch (Exception e) {
@@ -413,7 +471,11 @@ public class MinecraftConnectionThread extends Thread {
         logInfo("总线程", "已撤除该连接");
 
 //        发送断开连接消息
-        session.sendMessageToAllGroups("有Minecraft服务端断开会话！\n会话名：" + session.getName() + "\n服务端名称：" + serverName.getContent() + "\n地址：" + serverAddress + "\n时间：" + new Date());
+        session.sendMessageToAllGroups("有Minecraft服务端断开会话！\n会话名：" +
+                session.getName() + "\n服务端名称：" +
+                serverName.getContent() + "\n地址：" +
+                serverAddress + "\n原因：" +
+                disconnectReason + "\n时间：" + new Date());
     }
 
     public void addSendQueue(Packet packet) {
@@ -436,6 +498,10 @@ public class MinecraftConnectionThread extends Thread {
         return onlinePlayersCommands;
     }
 
+    public VarIntString getRconCommandPrefix() {
+        return rconCommandPrefix;
+    }
+
     public MinecraftConnectionThread(
             Socket socket,
             VarLong sessionId,
@@ -447,7 +513,9 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString kickFormatString,
             VarIntString[] onlinePlayersCommands,
             VarIntString onlinePlayersCommandResponseFormat,
-            VarIntString onlinePlayersCommandResponseSeparator
+            VarIntString onlinePlayersCommandResponseSeparator,
+            VarIntString rconCommandPrefix,
+            VarIntString rconCommandResultFormat
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -460,6 +528,8 @@ public class MinecraftConnectionThread extends Thread {
         this.onlinePlayersCommands = onlinePlayersCommands;
         this.onlinePlayersCommandResponseFormat = onlinePlayersCommandResponseFormat;
         this.onlinePlayersCommandResponseSeparator = onlinePlayersCommandResponseSeparator;
+        this.rconCommandPrefix = rconCommandPrefix;
+        this.rconCommandResultFormat = rconCommandResultFormat;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());

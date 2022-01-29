@@ -48,7 +48,13 @@ public class SessionUtil {
     ) throws FileNotFoundException {
         List<Session> sessions = getSessions();
         for (Session session : sessions) {
-            session.sendMessageFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
+            AsyncCaller.run(() -> {
+                try {
+                    session.sendMessageFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            });
         }
     }
 
@@ -56,7 +62,8 @@ public class SessionUtil {
         logger.info("开始关闭所有连接线程");
         for (Session session : getSessions()) {
             session.sendClosePacketToMinecraftThread(info);
-            while (session.getMinecraftThreads().size() != 0) {}
+            while (session.getMinecraftThreads().size() != 0) {
+            }
         }
         logger.info("所有连接线程关闭完成");
     }
