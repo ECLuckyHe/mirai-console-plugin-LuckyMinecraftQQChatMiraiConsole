@@ -30,13 +30,39 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private Permission opMcChatPerm;
 
 //    监听主线程
-    private ServerMainThread serverMainThread = new ServerMainThread(getLogger());
+    private ServerMainThread serverMainThread;
 
     private LuckyMinecraftQQChatMiraiConsole() {
         super(new JvmPluginDescriptionBuilder(
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
                 "1.1"
         ).build());
+    }
+
+    public ServerMainThread getServerMainThread() {
+        return serverMainThread;
+    }
+
+    public void newServerMainThread() {
+        serverMainThread = new ServerMainThread(getLogger());
+    }
+
+    public void stopServerMainThread() {
+        getLogger().info("=================================================================");
+
+        while (serverMainThread.isAlive()) {
+            serverMainThread.close();
+        }
+        getLogger().info("监听线程关闭完成");
+
+        try {
+            SessionUtil.closeAllConnections("bot执行退出bot进程指令");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        getLogger().info("已关闭所有线程");
+        getLogger().info("=================================================================");
     }
 
     @Override
@@ -49,21 +75,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
 //        关闭所有游戏连接线程
-        getLogger().info("=================================================================");
-
-        while (serverMainThread.isAlive()) {
-            serverMainThread.close();
-        }
-        getLogger().info("监听线程关闭完成");
-
-        try {
-            SessionUtil.closeAllConnections("bot执行退出bot进程指令");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        getLogger().info("已关闭所有线程");
-        getLogger().info("=================================================================");
+        stopServerMainThread();
     }
 
     @Override
@@ -91,13 +103,14 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
         try {
-            SessionDataOperation.initSessionDataPath(getDataFolder(), getResource("sessionData.yml", StandardCharsets.UTF_8));
+            SessionDataOperation.initSessionDataPath(getDataFolder(), getResource("sessionData.yml", StandardCharsets.UTF_8), INSTANCE);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+//        创建一个新线程
+        newServerMainThread();
         serverMainThread.start();
-
     }
 
     private void loadPermissions() {

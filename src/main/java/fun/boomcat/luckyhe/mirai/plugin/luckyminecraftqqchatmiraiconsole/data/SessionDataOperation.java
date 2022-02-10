@@ -1,5 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data;
 
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
@@ -7,6 +8,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.excepti
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
+import net.mamoe.mirai.console.plugin.jvm.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -21,8 +23,10 @@ public class SessionDataOperation {
     private static String sessionDataFilename = "sessionData.yml";
     private static Yaml yaml = new Yaml();
     private static List<Object> sessionDataList;
+    private static LuckyMinecraftQQChatMiraiConsole INSTANCE;
 
-    public static void initSessionDataPath(File path, String sessionDataContent) throws IOException {
+    public static void initSessionDataPath(File path, String sessionDataContent, LuckyMinecraftQQChatMiraiConsole I) throws IOException {
+        INSTANCE = I;
         dataPath = path;
         File[] files = dataPath.listFiles();
         boolean hasSessionData = false;
@@ -60,10 +64,16 @@ public class SessionDataOperation {
         osw.close();
 
         sessionDataList = null;
-//        此处需调用一个关闭所有会话连接的操作
-        SessionUtil.closeAllConnections("bot修改会话配置");
+
+//        停止主线程
+        INSTANCE.stopServerMainThread();
+
 //        清除所有Session对象
         SessionUtil.clear();
+
+//        重新开启线程
+        INSTANCE.newServerMainThread();
+        INSTANCE.getServerMainThread().start();
     }
 
     public static Map<String, Object> getSessionData(long sessionId) throws FileNotFoundException, SessionDataNotExistException {
