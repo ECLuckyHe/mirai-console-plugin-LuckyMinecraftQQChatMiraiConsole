@@ -35,7 +35,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private LuckyMinecraftQQChatMiraiConsole() {
         super(new JvmPluginDescriptionBuilder(
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
-                "1.1"
+                "1.1.1"
         ).build());
     }
 
