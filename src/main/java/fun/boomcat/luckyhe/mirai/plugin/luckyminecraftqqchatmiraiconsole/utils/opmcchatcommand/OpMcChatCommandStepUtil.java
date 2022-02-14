@@ -18,11 +18,15 @@ public class OpMcChatCommandStepUtil {
 
     public static void setStep(Long qq, OpMcChatCommandStep step, Contact contact) {
         stepMap.put(qq, step);
+
+//        修改状态后发送新状态的指引
         contact.sendMessage(step.getInstruction());
     }
 
     public static void clearStep(Long qq, Contact contact, String exitMsg) {
         stepMap.put(qq, null);
+
+//        删除后发送消息
         contact.sendMessage(exitMsg);
     }
 }

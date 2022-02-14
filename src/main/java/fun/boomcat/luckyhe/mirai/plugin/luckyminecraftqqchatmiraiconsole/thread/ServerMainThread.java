@@ -12,6 +12,7 @@ import net.mamoe.mirai.utils.MiraiLogger;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Date;
 
 public class ServerMainThread extends Thread {
@@ -25,10 +26,13 @@ public class ServerMainThread extends Thread {
 
     public void close() {
         isRunning = false;
-        try {
-            serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        while (!serverSocket.isClosed()) {
+            try {
+                serverSocket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 

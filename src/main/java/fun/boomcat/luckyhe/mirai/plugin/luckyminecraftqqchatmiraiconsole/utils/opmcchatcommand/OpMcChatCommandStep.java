@@ -1,10 +1,17 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand;
 
 public enum OpMcChatCommandStep {
-    MAIN(OpMcChatCommandUtil.mainHelp());
+    MAIN(OpMcChatCommandUtil.mainHelp()),
+    MAIN_LIST(OpMcChatCommandUtil.listHelp()),
+    ADD(OpMcChatCommandUtil.addHelp()),
+    ADD_SESSION_NAME(OpMcChatCommandUtil.addSessionNameHelp()),
+    ADD_GROUP_FORMAT(OpMcChatCommandUtil.addGroupFormatHelp()),
+    ADD_CONFIRM(OpMcChatCommandUtil.addConfirmHelp()),
+    DEL(OpMcChatCommandUtil.delHelp()),
+    DEL_CONFIRM(OpMcChatCommandUtil.delConfirm());
 
     private String instruction;
-    private OpMcChatCommandStep(String instruction) {
+    OpMcChatCommandStep(String instruction) {
         this.instruction = instruction;
     }
 
