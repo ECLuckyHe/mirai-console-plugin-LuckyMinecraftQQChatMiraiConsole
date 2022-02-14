@@ -1,24 +1,14 @@
-package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
+package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand;
 
 import net.mamoe.mirai.console.command.CommandManager;
 
 public class OpMcChatCommandUtil {
-    public static String mainHelp(String primaryName, String[] secondaryNames) {
-        StringBuilder sb = new StringBuilder();
-        String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
+    public static String mainHelp() {
 
-        sb.append(commandPrefix).append(primaryName).append("指令 ");
-        if (secondaryNames.length != 0) {
-            sb.append("别名：");
-            for (String secondaryName : secondaryNames) {
-                sb.append(commandPrefix).append(secondaryName).append(" ");
-            }
-        }
-
-        sb.append("后接参数：\n");
-        sb.append("session    与会话相关的操作\n");
-
-        return sb.toString();
+        return "主菜单：\n" +
+                "session    管理与会话有关的内容\n" +
+                "exit    返回到上一级（全局通用）\n" +
+                "quit    退出指令";
     }
 
     public static String sessionHelp(String primaryName, String[] secondaryNames) {
