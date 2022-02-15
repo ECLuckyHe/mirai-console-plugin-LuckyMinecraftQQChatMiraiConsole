@@ -160,4 +160,13 @@ public class OpMcChatCommandUtil {
                 "exit    退出修改互通格式操作\n" +
                 "quit    退出指令";
     }
+
+    public static String modifySessionName() {
+        return "主菜单/修改会话/修改会话名\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<会话名>    新的会话名\n" +
+                "exit    退出修改会话名\n" +
+                "quit    退出指令";
+    }
 }

@@ -21,7 +21,7 @@ import java.util.Random;
 
 public class Session {
     private final long id;
-    private final String name;
+    private String name;
     private final List<SessionGroup> groups;
     private String formatString;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
@@ -350,6 +350,10 @@ public class Session {
 
     public void setFormatString(String formatString) {
         this.formatString = formatString;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Session(long id, String name, List<SessionGroup> groups, String formatString) {

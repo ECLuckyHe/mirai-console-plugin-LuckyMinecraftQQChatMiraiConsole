@@ -101,6 +101,8 @@ public class OpMcCommandStepListener implements ListenerHost {
             case MODIFY_FORMAT:
                 onModifyFormat(step, subject, sender, content);
                 break;
+            case MODIFY_SESSION_NAME:
+                onModifySessionName(step, subject, sender, content);
         }
     }
 
@@ -414,28 +416,34 @@ public class OpMcCommandStepListener implements ListenerHost {
 
     public void onModifyMain(OpMcChatCommandStep step, Contact subject, User sender, String content) {
 //        修改会话操作
+        Session tempSession = modifySessionIdTempMap.get(sender.getId());
+
         switch (content.toLowerCase()) {
             case "exit":
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
                 break;
             case "gadd":
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(modifySessionIdTempMap.get(sender.getId())));
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_ADD_GROUP, subject);
                 break;
             case "gdel":
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(modifySessionIdTempMap.get(sender.getId())));
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_DEL_GROUP, subject);
                 break;
             case "format":
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(modifySessionIdTempMap.get(sender.getId())));
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_FORMAT, subject);
+                break;
+            case "name":
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_SESSION_NAME, subject);
                 break;
             case "ok":
                 onModifyOk(step, subject, sender, content);
                 break;
             default:
                 subject.sendMessage("无该指令");
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(modifySessionIdTempMap.get(sender.getId())));
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
                 subject.sendMessage(step.getInstruction());
                 break;
         }
@@ -556,6 +564,21 @@ public class OpMcCommandStepListener implements ListenerHost {
         OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
     }
 
+    public void onModifySessionName(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        修改会话名
+        Session tempSession = modifySessionIdTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            return;
+        }
+
+        tempSession.setName(content);
+        subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+    }
+
     public void onModifyOk(OpMcChatCommandStep step, Contact subject, User sender, String content) {
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
         Session oldSession;
@@ -577,6 +600,19 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         subject.sendMessage("正在应用会话设置，请稍等");
         isBusy = true;
+
+//        对会话名进行修改
+        if (!tempSession.getName().equals(oldSession.getName())) {
+            try {
+                SessionDataOperation.modifySessionDataName(tempSession.getId(), tempSession.getName());
+            } catch (SessionDataNotExistException e) {
+                subject.sendMessage("修改会话名时发现会话号为" + tempSession.getId() + "的会话不存在");
+            } catch (Exception e) {
+                subject.sendMessage("修改会话名时出现其它异常，请稍后重试或联系开发者");
+            }
+            subject.sendMessage("原会话名：" + oldSession.getName() + "\n" +
+                    "修改为：" + tempSession.getName());
+        }
 
 //        对消息格式进行修改
         if (!tempSession.getFormatString().equals(oldSession.getFormatString())) {
