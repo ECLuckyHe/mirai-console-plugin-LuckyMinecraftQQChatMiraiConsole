@@ -1,5 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener;
 
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
@@ -11,6 +12,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.M
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
+import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.event.EventHandler;
@@ -26,6 +28,8 @@ import java.util.Map;
 
 public class OpMcCommandStepListener implements ListenerHost {
 
+    private LuckyMinecraftQQChatMiraiConsole INSTANCE;
+
     //    临时存放新会话号
     private final static Map<Long, Long> newSessionIdTempMap = new HashMap<>();
     //    临时存放新会话名
@@ -39,12 +43,27 @@ public class OpMcCommandStepListener implements ListenerHost {
     //    忙碌状态，为true时拒绝任何会话操作
     private static boolean isBusy = false;
 
+    public OpMcCommandStepListener(LuckyMinecraftQQChatMiraiConsole INSTANCE) {
+        this.INSTANCE = INSTANCE;
+    }
+
     @EventHandler
     public void onMessage(MessageEvent e) {
+        String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
         MessageChain message = e.getMessage();
         String content = message.contentToString();
         Contact subject = e.getSubject();
         User sender = e.getSender();
+
+        if ((commandPrefix + INSTANCE.getOpMcChatCommandPrimaryName()).equalsIgnoreCase(content)) {
+            return;
+        }
+
+        for (String secondaryName : INSTANCE.getOpMcChatCommandSecondaryNames()) {
+            if ((commandPrefix + secondaryName).equalsIgnoreCase(content)) {
+                return;
+            }
+        }
 
         OpMcChatCommandStep step = OpMcChatCommandStepUtil.getStep(sender.getId());
         if (step == null) {

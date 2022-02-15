@@ -31,7 +31,18 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private Permission opMcChatPerm;
     private Permission mcChatPerm;
 
-//    监听主线程
+    private final String opMcChatCommandPrimaryName = "opmcchat";
+    private final String[] opMcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
+
+    public String getOpMcChatCommandPrimaryName() {
+        return opMcChatCommandPrimaryName;
+    }
+
+    public String[] getOpMcChatCommandSecondaryNames() {
+        return opMcChatCommandSecondaryNames;
+    }
+
+    //    监听主线程
     private ServerMainThread serverMainThread;
 
     private LuckyMinecraftQQChatMiraiConsole() {
@@ -143,12 +154,11 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private void loadCommands() {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
 
-        String[] opMcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
         CommandManager.INSTANCE.registerCommand(new OpMcChatCommand(
                 this,
-                "opmcchat",
+                opMcChatCommandPrimaryName,
                 opMcChatCommandSecondaryNames,
-                commandPrefix + "opmcchat <操作>",
+                commandPrefix + opMcChatCommandPrimaryName + " <操作>",
                 "mc互通相关指令",
                 opMcChatPerm,
                 false
@@ -168,6 +178,6 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     private void loadListeners() {
         GlobalEventChannel.INSTANCE.registerListenerHost(new MessageListener());
-        GlobalEventChannel.INSTANCE.registerListenerHost(new OpMcCommandStepListener());
+        GlobalEventChannel.INSTANCE.registerListenerHost(new OpMcCommandStepListener(this));
     }
 }
