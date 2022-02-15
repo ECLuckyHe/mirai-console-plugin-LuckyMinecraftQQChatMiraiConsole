@@ -1,9 +1,10 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
 import net.mamoe.mirai.console.command.CommandSender;
+import net.mamoe.mirai.contact.Contact;
 
 public class MessageUtil {
-    public static void pageSender(CommandSender commandSender, String message) {
+    public static void pageSender(Contact contact, String message) {
         int splitLength = 2000;
         int strLen = message.length();
         int totalPages = strLen / splitLength + (strLen % splitLength == 0 ? 0 : 1);
@@ -21,13 +22,13 @@ public class MessageUtil {
                 sb = new StringBuilder();
             }
 
-            commandSender.sendMessage("<第" + current + "页，共" + totalPages + "页>\n" + part);
+            contact.sendMessage("<第" + current + "页，共" + totalPages + "页>\n" + part);
 
             try {
                 Thread.sleep(1000);
             } catch (Exception e) {
                 e.printStackTrace();
-                commandSender.sendMessage("发生了其它错误，请联系开发者");
+                contact.sendMessage("发生了其它错误，请联系开发者");
             }
 
             current ++;

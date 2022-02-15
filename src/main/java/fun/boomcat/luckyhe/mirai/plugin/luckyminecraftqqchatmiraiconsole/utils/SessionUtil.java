@@ -3,11 +3,14 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SessionUtil {
@@ -37,6 +40,37 @@ public class SessionUtil {
         throw new SessionDataNotExistException();
     }
 
+    public static String sessionToString(Session session) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("会话号：").append(session.getId()).append("\n");
+        sb.append("会话名：").append(session.getName()).append("\n");
+        sb.append("群间消息格式：").append(session.getFormatString()).append("\n");
+        sb.append("群列表：");
+
+        List<SessionGroup> groups = session.getGroups();
+        if (groups.size() == 0) {
+            sb.append("空\n");
+        } else {
+            sb.append("\n");
+            for (SessionGroup group : groups) {
+                sb.append("    ").append(group.getName()).append("(").append(group.getId()).append(")").append("\n");
+            }
+        }
+
+        sb.append("连接：");
+        List<MinecraftConnectionThread> threads = session.getMinecraftThreads();
+        if (threads.size() == 0) {
+            sb.append("无\n");
+        } else {
+            sb.append("\n");
+            for (MinecraftConnectionThread thread : threads) {
+                sb.append("    ").append(thread.getServerName().getContent()).append("(").append(thread.getServerAddress()).append(")").append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
     public static void sendMessageFromGroup(
             Bot bot,
             long groupId,
@@ -58,13 +92,25 @@ public class SessionUtil {
         }
     }
 
-    public static void closeAllConnections(String info) throws FileNotFoundException {
+    public static void closeAllConnections(String info) throws FileNotFoundException, InterruptedException {
         logger.info("开始关闭所有连接线程");
         for (Session session : getSessions()) {
             session.sendClosePacketToMinecraftThread(info);
             while (session.getMinecraftThreads().size() != 0) {
+                logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
+                Thread.sleep(1000);
             }
         }
         logger.info("所有连接线程关闭完成");
+    }
+
+    public static Session copySessionWithNoThreads(Session session) {
+//        复制一个Session对象
+        List<SessionGroup> sessionGroups = new ArrayList<>();
+        for (SessionGroup group : session.getGroups()) {
+            sessionGroups.add(new SessionGroup(group.getId(), group.getName()));
+        }
+
+        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString());
     }
 }

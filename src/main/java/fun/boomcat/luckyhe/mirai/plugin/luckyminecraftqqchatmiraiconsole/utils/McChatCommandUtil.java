@@ -21,5 +21,14 @@ public class McChatCommandUtil {
         return sb.toString();
     }
 
+    public static String sessionHelp(String primaryName, String[] secondaryNames) {
+        String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
+        StringBuilder sb = new StringBuilder();
 
+        sb.append(commandPrefix).append(primaryName).append(" session 后接下列参数：\n");
+        sb.append("list    输出所有管理的会话\n");
+        sb.append("list <会话号>    输出指定会话号信息\n");
+
+        return sb.toString();
+    }
 }
