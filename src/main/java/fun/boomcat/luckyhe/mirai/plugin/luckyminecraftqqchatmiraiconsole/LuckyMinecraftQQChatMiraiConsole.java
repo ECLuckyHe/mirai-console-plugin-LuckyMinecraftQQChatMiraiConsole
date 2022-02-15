@@ -154,16 +154,16 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
                 false
         ), false);
 
-        String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
-        CommandManager.INSTANCE.registerCommand(new McChatCommand(
-                this,
-                "mcchat",
-                mcChatCommandSecondaryNames,
-                commandPrefix + "mcchat <操作>",
-                "mc互通相关指令",
-                mcChatPerm,
-                false
-        ), false);
+//        String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
+//        CommandManager.INSTANCE.registerCommand(new McChatCommand(
+//                this,
+//                "mcchat",
+//                mcChatCommandSecondaryNames,
+//                commandPrefix + "mcchat <操作>",
+//                "mc互通相关指令",
+//                mcChatPerm,
+//                false
+//        ), false);
     }
 
     private void loadListeners() {
