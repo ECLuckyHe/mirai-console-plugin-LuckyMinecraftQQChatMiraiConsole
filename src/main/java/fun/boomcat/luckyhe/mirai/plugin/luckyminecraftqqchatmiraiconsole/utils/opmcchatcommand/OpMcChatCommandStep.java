@@ -8,7 +8,12 @@ public enum OpMcChatCommandStep {
     ADD_GROUP_FORMAT(OpMcChatCommandUtil.addGroupFormatHelp()),
     ADD_CONFIRM(OpMcChatCommandUtil.addConfirmHelp()),
     DEL(OpMcChatCommandUtil.delHelp()),
-    DEL_CONFIRM(OpMcChatCommandUtil.delConfirm());
+    DEL_CONFIRM(OpMcChatCommandUtil.delConfirm()),
+    MODIFY(OpMcChatCommandUtil.modifyHelp()),
+    MODIFY_MAIN(OpMcChatCommandUtil.modifyMenuHelp()),
+    MODIFY_ADD_GROUP(OpMcChatCommandUtil.modifyGroupAddHelp()),
+    MODIFY_DEL_GROUP(OpMcChatCommandUtil.modifyGroupDelHelp()),
+    MODIFY_FORMAT(OpMcChatCommandUtil.modifyFormatHelp());
 
     private String instruction;
     OpMcChatCommandStep(String instruction) {

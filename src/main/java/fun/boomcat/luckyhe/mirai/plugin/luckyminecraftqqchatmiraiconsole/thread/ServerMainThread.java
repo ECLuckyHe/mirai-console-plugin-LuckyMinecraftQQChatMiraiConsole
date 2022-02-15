@@ -56,7 +56,7 @@ public class ServerMainThread extends Thread {
         }
 
         logger.info("Server Socket开启成功，监听端口为" + port);
-        for (int i = 10; i > 0; i--) {
+        for (int i = 10; i > 0 && isRunning; i--) {
             logger.info(i + "秒后开始监听请求");
             try {
                 Thread.sleep(1000L);

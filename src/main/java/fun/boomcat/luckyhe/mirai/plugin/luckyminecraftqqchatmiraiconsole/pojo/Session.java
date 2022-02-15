@@ -17,14 +17,13 @@ import net.mamoe.mirai.message.data.MessageChainBuilder;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Random;
 
 public class Session {
     private final long id;
     private final String name;
     private final List<SessionGroup> groups;
-    private final String formatString;
+    private String formatString;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
 
     public boolean hasGroup(long groupId) {
@@ -347,6 +346,10 @@ public class Session {
 
     public List<MinecraftConnectionThread> getMinecraftThreads() {
         return minecraftThreads;
+    }
+
+    public void setFormatString(String formatString) {
+        this.formatString = formatString;
     }
 
     public Session(long id, String name, List<SessionGroup> groups, String formatString) {

@@ -10,6 +10,7 @@ import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SessionUtil {
@@ -101,5 +102,15 @@ public class SessionUtil {
             }
         }
         logger.info("所有连接线程关闭完成");
+    }
+
+    public static Session copySessionWithNoThreads(Session session) {
+//        复制一个Session对象
+        List<SessionGroup> sessionGroups = new ArrayList<>();
+        for (SessionGroup group : session.getGroups()) {
+            sessionGroups.add(new SessionGroup(group.getId(), group.getName()));
+        }
+
+        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString());
     }
 }
