@@ -1,9 +1,11 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole;
 
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.McChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.OpMcChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.ServerMainThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
@@ -19,7 +21,6 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -28,6 +29,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     public static final LuckyMinecraftQQChatMiraiConsole INSTANCE = new LuckyMinecraftQQChatMiraiConsole();
 
     private Permission opMcChatPerm;
+    private Permission mcChatPerm;
 
 //    监听主线程
     private ServerMainThread serverMainThread;
@@ -35,7 +37,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private LuckyMinecraftQQChatMiraiConsole() {
         super(new JvmPluginDescriptionBuilder(
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
-                "1.1.2"
+                "1.1.3"
         ).build());
     }
 
@@ -115,6 +117,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     private void loadPermissions() {
         PermissionId opMcChatPermId = new PermissionId("luckyminecraftqqchatmiraiconsole", "command.opmcchat");
+        PermissionId mcChatPermId = new PermissionId("luckyminecraftqqchatmiraiconsole", "command.mcchat");
 
         try {
             opMcChatPerm = PermissionService.getInstance().register(
@@ -125,24 +128,46 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         } catch (PermissionRegistryConflictException e) {
             e.printStackTrace();
         }
+
+        try {
+            mcChatPerm = PermissionService.getInstance().register(
+                    mcChatPermId,
+                    "mc互通相关指令",
+                    Permission.getRootPermission()
+            );
+        } catch (PermissionRegistryConflictException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadCommands() {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
 
-        String[] mcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
+        String[] opMcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
         CommandManager.INSTANCE.registerCommand(new OpMcChatCommand(
                 this,
                 "opmcchat",
-                mcChatCommandSecondaryNames,
+                opMcChatCommandSecondaryNames,
                 commandPrefix + "opmcchat <操作>",
                 "mc互通相关指令",
                 opMcChatPerm,
                 false
         ), false);
+
+//        String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
+//        CommandManager.INSTANCE.registerCommand(new McChatCommand(
+//                this,
+//                "mcchat",
+//                mcChatCommandSecondaryNames,
+//                commandPrefix + "mcchat <操作>",
+//                "mc互通相关指令",
+//                mcChatPerm,
+//                false
+//        ), false);
     }
 
     private void loadListeners() {
         GlobalEventChannel.INSTANCE.registerListenerHost(new MessageListener());
+        GlobalEventChannel.INSTANCE.registerListenerHost(new OpMcCommandStepListener());
     }
 }
