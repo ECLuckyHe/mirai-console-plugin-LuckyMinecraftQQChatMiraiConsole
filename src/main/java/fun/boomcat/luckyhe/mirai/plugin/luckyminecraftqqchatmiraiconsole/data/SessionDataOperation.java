@@ -66,7 +66,7 @@ public class SessionDataOperation {
         sessionDataList = null;
 
 //        停止主线程
-        INSTANCE.stopServerMainThread();
+        INSTANCE.stopServerMainThread("bot执行会话设置修改操作，稍后将自动重连");
 
 //        清除所有Session对象
         SessionUtil.clear();

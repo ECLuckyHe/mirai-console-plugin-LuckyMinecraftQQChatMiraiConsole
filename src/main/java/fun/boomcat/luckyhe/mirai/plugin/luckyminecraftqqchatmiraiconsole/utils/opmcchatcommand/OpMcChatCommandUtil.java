@@ -1,7 +1,5 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand;
 
-import net.mamoe.mirai.console.command.CommandManager;
-
 public class OpMcChatCommandUtil {
     public static String mainHelp() {
 
@@ -12,6 +10,7 @@ public class OpMcChatCommandUtil {
                 "add    添加会话信息\n" +
                 "del    删除会话信息\n" +
                 "modify    修改会话信息\n" +
+                "announce    向MC端发送公告\n" +
                 "exit    返回到上一级（全局通用）\n" +
                 "quit    退出指令";
     }
@@ -161,12 +160,43 @@ public class OpMcChatCommandUtil {
                 "quit    退出指令";
     }
 
-    public static String modifySessionName() {
+    public static String modifySessionNameHelp() {
         return "主菜单/修改会话/修改会话名\n" +
                 "====================\n" +
                 "操作：\n" +
                 "<会话名>    新的会话名\n" +
                 "exit    退出修改会话名\n" +
+                "quit    退出指令";
+    }
+
+    public static String announceHelp() {
+        return "主菜单/发送公告\n" +
+                "====================\n" +
+                "操作：\n" +
+                "content    指定公告内容\n" +
+                "mc    指定需要发送的MC端\n" +
+                "ok    确认发送\n" +
+                "exit    退出发送公告\n" +
+                "quit    退出指令";
+    }
+
+    public static String announceContentHelp() {
+        return "主菜单/发送公告/指定公告内容\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<公告内容>    发送的内容作为公告内容\n" +
+                "exit    退出指定公告内容\n" +
+                "quit    退出指令";
+    }
+
+    public static String announceMcHelp() {
+        return "主菜单/发送公告/指定MC端\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<会话号> <MC连接名>    选择或取消选择接收公告的连接名\n" +
+                "<会话号>    选择或取消选择该会话的所有MC连接\n" +
+                "all    向所有会话的MC连接发送公告\n" +
+                "exit    退出指定MC端操作\n" +
                 "quit    退出指令";
     }
 }
