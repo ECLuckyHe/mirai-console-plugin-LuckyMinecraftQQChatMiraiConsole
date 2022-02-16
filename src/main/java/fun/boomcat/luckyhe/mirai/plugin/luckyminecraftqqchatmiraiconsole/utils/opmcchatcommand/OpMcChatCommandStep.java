@@ -14,9 +14,12 @@ public enum OpMcChatCommandStep {
     MODIFY_ADD_GROUP(OpMcChatCommandUtil.modifyGroupAddHelp()),
     MODIFY_DEL_GROUP(OpMcChatCommandUtil.modifyGroupDelHelp()),
     MODIFY_FORMAT(OpMcChatCommandUtil.modifyFormatHelp()),
-    MODIFY_SESSION_NAME(OpMcChatCommandUtil.modifySessionName());
+    MODIFY_SESSION_NAME(OpMcChatCommandUtil.modifySessionNameHelp()),
+    ANNOUNCE(OpMcChatCommandUtil.announceHelp()),
+    ANNOUNCE_MC(OpMcChatCommandUtil.announceMcHelp()),
+    ANNOUNCE_CONTENT(OpMcChatCommandUtil.announceContentHelp());
 
-    private String instruction;
+    private final String instruction;
     OpMcChatCommandStep(String instruction) {
         this.instruction = instruction;
     }

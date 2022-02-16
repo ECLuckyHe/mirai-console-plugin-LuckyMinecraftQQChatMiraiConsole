@@ -6,12 +6,15 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.excepti
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MessageUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.pojo.Announcement;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
@@ -40,6 +43,8 @@ public class OpMcCommandStepListener implements ListenerHost {
     private final static Map<Long, Session> delSessionIdTempMap = new HashMap<>();
     //    临时存放正在进行操作的会话（该会话是复制的，不会影响到正在运行的会话）
     private final static Map<Long, Session> modifySessionIdTempMap = new HashMap<>();
+    //    临时存放正在发送的公告对象
+    private final static Map<Long, Announcement> announceTempMap = new HashMap<>();
     //    忙碌状态，为true时拒绝任何会话操作
     private static boolean isBusy = false;
 
@@ -122,6 +127,16 @@ public class OpMcCommandStepListener implements ListenerHost {
                 break;
             case MODIFY_SESSION_NAME:
                 onModifySessionName(step, subject, sender, content);
+                break;
+            case ANNOUNCE:
+                onAnnounce(step, subject, sender, content);
+                break;
+            case ANNOUNCE_CONTENT:
+                onAnnounceContent(step, subject, sender, content);
+                break;
+            case ANNOUNCE_MC:
+                onAnnounceMc(step, subject, sender, content);
+                break;
         }
     }
 
@@ -142,6 +157,19 @@ public class OpMcCommandStepListener implements ListenerHost {
             case "modify":
 //                修改会话信息
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY, subject);
+                break;
+            case "announce":
+//                公告
+                Announcement announcement = new Announcement();
+                try {
+                    subject.sendMessage(announcement.toOutputString(SessionUtil.getSessions()));
+                } catch (Exception e) {
+                    subject.sendMessage("在获取会话列表时产生异常，请稍后重试或联系开发者");
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                }
+                announceTempMap.put(sender.getId(), announcement);
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
                 break;
             case "exit":
                 OpMcChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
@@ -700,6 +728,215 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         subject.sendMessage("对于会话" + tempSession.getId() + "的修改已完成\n" +
                 "====================\n" + SessionUtil.sessionToString(modifiedSession));
+        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+    }
+
+    public void onAnnounce(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        发送公告
+
+        if ("exit".equalsIgnoreCase(content)) {
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+            return;
+        }
+
+        List<Session> sessions;
+        try {
+            sessions = SessionUtil.getSessions();
+        } catch (Exception e) {
+            subject.sendMessage("发送公告功能在获取会话列表时产生异常，请稍后重试或联系开发者");
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        Announcement announcement = announceTempMap.get(sender.getId());
+
+        switch (content.toLowerCase()) {
+            case "content":
+                subject.sendMessage(announcement.toOutputString(sessions));
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE_CONTENT, subject);
+                break;
+            case "mc":
+                subject.sendMessage(announcement.toOutputString(sessions));
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE_MC, subject);
+                break;
+            case "ok":
+                onAnnounceOk(step, subject, sender, content);
+                break;
+            default:
+                subject.sendMessage("没有该指令");
+                subject.sendMessage(announcement.toOutputString(sessions));
+                subject.sendMessage(step.getInstruction());
+                break;
+        }
+    }
+
+    public void onAnnounceContent(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        发送公告内容
+        List<Session> sessions;
+        try {
+            sessions = SessionUtil.getSessions();
+        } catch (Exception e) {
+            subject.sendMessage("发送公告内容设置在获取会话列表时产生异常，请稍后重试或联系开发者");
+//            跳回到上一步，因为此处无法调用announcement.toOutputString
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        Announcement announcement = announceTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(announcement.toOutputString(sessions));
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        announcement.setContent(content);
+        subject.sendMessage(announcement.toOutputString(sessions));
+        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+    }
+
+    public void onAnnounceMc(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        选定发送公告连接
+        List<Session> sessions;
+        try {
+            sessions = SessionUtil.getSessions();
+        } catch (Exception e) {
+            subject.sendMessage("发送公告连接设置在获取会话列表时产生异常，请稍后重试或联系开发者");
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        Announcement announcement = announceTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(announcement.toOutputString(sessions));
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        if ("all".equalsIgnoreCase(content)) {
+//            判断是否已经全选
+            boolean isAll = true;
+            for (Session session : sessions) {
+//                此处不需要对threadNames赋值的原因是在前面的toOutputString中已经初始化过了
+                List<String> threadNames = announcement.getThreadsMap().get(session);
+                for (MinecraftConnectionThread thread : session.getMinecraftThreads()) {
+                    if (!threadNames.contains(thread.getServerName().getContent())) {
+                        isAll = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isAll) {
+//                未全选则全选，否则反选
+                announcement.clearAllMinecraftThreads(sessions);
+            } else {
+                announcement.selectAllMinecraftThreadsOfAllSession(sessions);
+            }
+
+            subject.sendMessage(announcement.toOutputString(sessions));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        以下为指定会话和连接名
+        String[] split = content.trim().split(" ");
+
+        String sessionIdString = split[0];
+        long sessionId;
+        try {
+            sessionId = Long.parseLong(sessionIdString);
+        } catch (NumberFormatException e) {
+            subject.sendMessage("会话号应为数字而不是" + sessionIdString);
+            subject.sendMessage(announcement.toOutputString(sessions));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        Session session;
+        try {
+            session = SessionUtil.getSession(sessionId);
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("会话号为" + sessionId + "的会话不存在");
+            subject.sendMessage(announcement.toOutputString(sessions));
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (Exception e) {
+            subject.sendMessage("获取会话时出现其它异常，请稍后重试或联系开发者");
+            subject.sendMessage(announcement.toOutputString(sessions));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if (split.length == 1) {
+//            判断是否为全选，如未全选则全选，否则反选
+            List<MinecraftConnectionThread> minecraftThreads = session.getMinecraftThreads();
+
+            boolean isAllIn = true;
+            for (MinecraftConnectionThread thread : minecraftThreads) {
+                if (!announcement.getThreadsMap().get(session).contains(thread.getServerName().getContent())) {
+                    isAllIn = false;
+                    break;
+                }
+            }
+
+            if (isAllIn) {
+                announcement.clearMinecraftThreads(session);
+            } else {
+                announcement.selectAllMinecraftThreadsOfOneSession(session);
+            }
+
+            subject.sendMessage(announcement.toOutputString(sessions));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        添加单个连接
+        String tName = content.trim().substring(sessionIdString.length()).trim();
+        if (announcement.isMinecraftThreadExist(session, tName)) {
+            announcement.delMinecraftThread(session, tName);
+        } else {
+            announcement.addMinecraftThread(session, tName);
+        }
+
+        subject.sendMessage(announcement.toOutputString(sessions));
+        subject.sendMessage(step.getInstruction());
+    }
+
+    public void onAnnounceOk(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        确认发送公告
+        List<Session> sessions;
+        try {
+            sessions = SessionUtil.getSessions();
+        } catch (Exception e) {
+            subject.sendMessage("发送公告过程中在获取会话列表时产生异常，请稍后重试或联系开发者");
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        Announcement announcement = announceTempMap.get(sender.getId());
+        if (announcement.getContent() == null || announcement.getContent().equals("")) {
+            subject.sendMessage("未指定公告内容");
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        isBusy = true;
+
+        for (Session session : sessions) {
+            List<String> threadNames = announcement.getThreadsMap().get(session);
+            for (String threadName : threadNames) {
+                try {
+                    session.sendAnnouncementToMinecraftConnection(sender.getId(), sender.getNick(), threadName, announcement.getContent());
+                    subject.sendMessage("已向会话" + session.getId() + "的连接" + threadName + "发送公告内容");
+                } catch (MinecraftThreadNotFoundException e) {
+                    subject.sendMessage("会话" + session.getId() + "不存在连接" + threadName);
+                }
+            }
+        }
+
+        isBusy = false;
         OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
     }
 

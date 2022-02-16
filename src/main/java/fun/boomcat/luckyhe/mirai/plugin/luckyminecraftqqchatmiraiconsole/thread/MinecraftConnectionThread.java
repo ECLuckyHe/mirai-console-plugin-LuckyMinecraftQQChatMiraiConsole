@@ -60,7 +60,8 @@ public class MinecraftConnectionThread extends Thread {
     private final CountDownLatch cdl = new CountDownLatch(4);
 
     public String getStringWithPrefix(String threadName, String info) {
-        return "[" + serverName.getContent() + serverAddress + "][" + threadName + "] " + info;
+        return "[" + session.getId() + "(" + session.getName() + ")][" + serverName.getContent() + serverAddress + "]" +
+                "[" + threadName + "] " + info;
     }
 
     public void logInfo(String threadName, String info) {
@@ -137,7 +138,7 @@ public class MinecraftConnectionThread extends Thread {
                     }
                 } catch (Exception e) {
                     isConnected = false;
-                    e.printStackTrace();
+//                    e.printStackTrace();
                     logError(threadName, "线程出现异常，开始关闭Socket");
 
                     try {
@@ -165,7 +166,7 @@ public class MinecraftConnectionThread extends Thread {
 
                 } catch (Exception e) {
                     isConnected = false;
-                    e.printStackTrace();
+//                    e.printStackTrace();
                     logError(threadName, "线程出现异常，开始关闭Socket");
 
                     try {
@@ -194,7 +195,7 @@ public class MinecraftConnectionThread extends Thread {
                     Thread.sleep(1000L * ConfigOperation.getHeartbeat());
                 } catch (Exception e) {
                     isConnected = false;
-                    e.printStackTrace();
+//                    e.printStackTrace();
                     logError(threadName, "线程异常停止，开始关闭Socket");
 
                     try {
@@ -435,7 +436,7 @@ public class MinecraftConnectionThread extends Thread {
                             break;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
                     isConnected = false;
                     logError(threadName, "出现异常，开始关闭Socket");
 
