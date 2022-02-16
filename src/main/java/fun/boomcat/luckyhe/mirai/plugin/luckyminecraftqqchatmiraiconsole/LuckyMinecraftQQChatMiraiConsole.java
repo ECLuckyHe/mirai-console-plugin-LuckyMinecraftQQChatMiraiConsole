@@ -60,7 +60,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         serverMainThread = new ServerMainThread(getLogger());
     }
 
-    public void stopServerMainThread() {
+    public void stopServerMainThread(String exitMessage) {
         getLogger().info("=================================================================");
 
         while (serverMainThread.isAlive()) {
@@ -69,7 +69,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         getLogger().info("监听线程关闭完成");
 
         try {
-            SessionUtil.closeAllConnections("bot执行退出bot进程指令");
+            SessionUtil.closeAllConnections(exitMessage);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -88,7 +88,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
 //        关闭所有游戏连接线程
-        stopServerMainThread();
+        stopServerMainThread("bot退出服务");
     }
 
     @Override
