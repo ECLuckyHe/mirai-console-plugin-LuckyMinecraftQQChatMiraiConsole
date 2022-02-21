@@ -40,6 +40,17 @@ public class SessionUtil {
         throw new SessionDataNotExistException();
     }
 
+    public static Session getUserSession(long sessionId, long qq) throws FileNotFoundException, SessionDataNotExistException {
+        List<Session> userSessions = getUserSessions(qq);
+        for (Session session : userSessions) {
+            if (session.getId() == sessionId) {
+                return session;
+            }
+        }
+
+        throw new SessionDataNotExistException();
+    }
+
     public static String sessionToString(Session session) {
         StringBuilder sb = new StringBuilder();
         sb.append("会话号：").append(session.getId()).append("\n");

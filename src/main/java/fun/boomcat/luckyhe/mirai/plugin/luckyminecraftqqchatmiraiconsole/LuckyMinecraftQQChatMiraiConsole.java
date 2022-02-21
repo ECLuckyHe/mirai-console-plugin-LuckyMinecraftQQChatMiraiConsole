@@ -5,6 +5,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.McCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
@@ -44,6 +45,14 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     public String[] getOpMcChatCommandSecondaryNames() {
         return opMcChatCommandSecondaryNames;
+    }
+
+    public String getMcChatCommandPrimaryName() {
+        return mcChatCommandPrimaryName;
+    }
+
+    public String[] getMcChatCommandSecondaryNames() {
+        return mcChatCommandSecondaryNames;
     }
 
     //    监听主线程
@@ -182,5 +191,6 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     private void loadListeners() {
         GlobalEventChannel.INSTANCE.registerListenerHost(new MessageListener());
         GlobalEventChannel.INSTANCE.registerListenerHost(new OpMcCommandStepListener(this));
+        GlobalEventChannel.INSTANCE.registerListenerHost(new McCommandStepListener(this));
     }
 }

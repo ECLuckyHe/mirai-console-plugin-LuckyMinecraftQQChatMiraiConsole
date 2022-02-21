@@ -2,7 +2,7 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.
 
 public enum OpMcChatCommandStep {
     MAIN(OpMcChatCommandUtil.mainHelp()),
-    MAIN_LIST(OpMcChatCommandUtil.listHelp()),
+    LIST(OpMcChatCommandUtil.listHelp()),
     ADD(OpMcChatCommandUtil.addHelp()),
     ADD_SESSION_NAME(OpMcChatCommandUtil.addSessionNameHelp()),
     ADD_GROUP_FORMAT(OpMcChatCommandUtil.addGroupFormatHelp()),
