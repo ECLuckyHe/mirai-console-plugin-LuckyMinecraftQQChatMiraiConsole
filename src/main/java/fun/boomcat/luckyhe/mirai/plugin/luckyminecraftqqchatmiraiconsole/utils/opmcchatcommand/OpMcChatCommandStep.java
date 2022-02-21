@@ -15,6 +15,8 @@ public enum OpMcChatCommandStep {
     MODIFY_DEL_GROUP(OpMcChatCommandUtil.modifyGroupDelHelp()),
     MODIFY_FORMAT(OpMcChatCommandUtil.modifyFormatHelp()),
     MODIFY_SESSION_NAME(OpMcChatCommandUtil.modifySessionNameHelp()),
+    MODIFY_ADD_ADMINISTRATOR(OpMcChatCommandUtil.modifyAdministratorAddHelp()),
+    MODIFY_DEL_ADMINISTRATOR(OpMcChatCommandUtil.modifyAdministratorDelHelp()),
     ANNOUNCE(OpMcChatCommandUtil.announceHelp()),
     ANNOUNCE_MC(OpMcChatCommandUtil.announceMcHelp()),
     ANNOUNCE_CONTENT(OpMcChatCommandUtil.announceContentHelp());

@@ -57,6 +57,17 @@ public class SessionUtil {
             }
         }
 
+        sb.append("管理员列表：");
+        List<Long> administrators = session.getAdministrators();
+        if (administrators.size() == 0) {
+            sb.append("空\n");
+        } else {
+            sb.append("\n");
+            for (Long administrator : administrators) {
+                sb.append("    ").append(administrator).append("\n");
+            }
+        }
+
         sb.append("连接：");
         List<MinecraftConnectionThread> threads = session.getMinecraftThreads();
         if (threads.size() == 0) {
@@ -111,6 +122,24 @@ public class SessionUtil {
             sessionGroups.add(new SessionGroup(group.getId(), group.getName()));
         }
 
-        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString());
+        List<Long> administrators = new ArrayList<>();
+        for (Long administrator : session.getAdministrators()) {
+            administrators.add(administrator);
+        }
+
+        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString(), administrators);
+    }
+
+    public static List<Session> getUserSessions(Long qq) throws FileNotFoundException {
+        List<Session> res = new ArrayList<>();
+
+        List<Session> sessions = getSessions();
+        for (Session session : sessions) {
+            if (session.getAdministrators().contains(qq)) {
+                res.add(session);
+            }
+        }
+
+        return res;
     }
 }

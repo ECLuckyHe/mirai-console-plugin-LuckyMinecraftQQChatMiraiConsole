@@ -2,10 +2,7 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listen
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
@@ -14,7 +11,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.M
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.pojo.Announcement;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.Announcement;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
@@ -23,11 +20,11 @@ import net.mamoe.mirai.event.ListenerHost;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.MessageChain;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class OpMcCommandStepListener implements ListenerHost {
 
@@ -127,6 +124,12 @@ public class OpMcCommandStepListener implements ListenerHost {
                 break;
             case MODIFY_SESSION_NAME:
                 onModifySessionName(step, subject, sender, content);
+                break;
+            case MODIFY_ADD_ADMINISTRATOR:
+                onModifyAddAdministrator(step, subject, sender, content);
+                break;
+            case MODIFY_DEL_ADMINISTRATOR:
+                onModifyDelAdministrator(step, subject, sender, content);
                 break;
             case ANNOUNCE:
                 onAnnounce(step, subject, sender, content);
@@ -485,6 +488,14 @@ public class OpMcCommandStepListener implements ListenerHost {
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
                 OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_SESSION_NAME, subject);
                 break;
+            case "aadd":
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_ADD_ADMINISTRATOR, subject);
+                break;
+            case "adel":
+                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_DEL_ADMINISTRATOR, subject);
+                break;
             case "ok":
                 onModifyOk(step, subject, sender, content);
                 break;
@@ -626,6 +637,56 @@ public class OpMcCommandStepListener implements ListenerHost {
         OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
     }
 
+    public void onModifyAddAdministrator(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        添加管理员
+        Session tempSession = modifySessionIdTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            return;
+        }
+
+        long newQq;
+        try {
+            newQq = Long.parseLong(content);
+        } catch (NumberFormatException e) {
+            subject.sendMessage("管理员QQ应该为数字而不是" + content);
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        tempSession.getAdministrators().add(newQq);
+        subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+        subject.sendMessage(step.getInstruction());
+    }
+
+    public void onModifyDelAdministrator(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+//        删除管理员
+        Session tempSession = modifySessionIdTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            return;
+        }
+
+        long delQq;
+        try {
+            delQq = Long.parseLong(content);
+        } catch (NumberFormatException e) {
+            subject.sendMessage("管理员QQ应该为数字而不是" + content);
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        tempSession.getAdministrators().removeIf(o -> o == delQq);
+        subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+        subject.sendMessage(step.getInstruction());
+    }
+
     public void onModifyOk(OpMcChatCommandStep step, Contact subject, User sender, String content) {
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
         Session oldSession;
@@ -652,26 +713,26 @@ public class OpMcCommandStepListener implements ListenerHost {
         if (!tempSession.getName().equals(oldSession.getName())) {
             try {
                 SessionDataOperation.modifySessionDataName(tempSession.getId(), tempSession.getName());
+                subject.sendMessage("原会话名：" + oldSession.getName() + "\n" +
+                        "修改为：" + tempSession.getName());
             } catch (SessionDataNotExistException e) {
                 subject.sendMessage("修改会话名时发现会话号为" + tempSession.getId() + "的会话不存在");
             } catch (Exception e) {
                 subject.sendMessage("修改会话名时出现其它异常，请稍后重试或联系开发者");
             }
-            subject.sendMessage("原会话名：" + oldSession.getName() + "\n" +
-                    "修改为：" + tempSession.getName());
         }
 
 //        对消息格式进行修改
         if (!tempSession.getFormatString().equals(oldSession.getFormatString())) {
             try {
                 SessionDataOperation.modifySessionDataFormat(tempSession.getId(), tempSession.getFormatString());
+                subject.sendMessage("原消息格式：" + oldSession.getFormatString() + "\n" +
+                        "修改为：" + tempSession.getFormatString());
             } catch (SessionDataNotExistException e) {
                 subject.sendMessage("修改消息格式时发现会话号为" + tempSession.getId() + "的会话不存在");
             } catch (IOException e) {
                 subject.sendMessage("修改消息格式时出现其它异常，请稍后重试或联系开发者");
             }
-            subject.sendMessage("原消息格式：" + oldSession.getFormatString() + "\n" +
-                    "修改为：" + tempSession.getFormatString());
         }
 
 //        对不在列表的群进行添加
@@ -679,6 +740,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             if (!oldSession.hasGroup(group.getId())) {
                 try {
                     SessionDataOperation.addSessionDataGroup(tempSession.getId(), group.getId(), group.getName());
+                    subject.sendMessage("添加互通群：" + group.getId() + "(" + group.getName() + ")");
                 } catch (SessionDataGroupExistException e) {
                     subject.sendMessage("添加互通群时发现群" + group.getId() + "已存在");
                 } catch (SessionDataNotExistException e) {
@@ -686,7 +748,6 @@ public class OpMcCommandStepListener implements ListenerHost {
                 } catch (IOException e) {
                     subject.sendMessage("添加互通群时出现其它异常，请稍后重试或联系开发者");
                 }
-                subject.sendMessage("添加互通群：" + group.getId() + "(" + group.getName() + ")");
             } else {
 //                删除掉在oldSession和tempSession中都存在的群
                 oldSession.getGroups().removeIf(s -> s.getId() == group.getId());
@@ -697,6 +758,7 @@ public class OpMcCommandStepListener implements ListenerHost {
         for (SessionGroup group : oldSession.getGroups()) {
             try {
                 SessionDataOperation.removeSessionDataGroup(tempSession.getId(), group.getId());
+                subject.sendMessage("删除互通群：" + group.getId() + "(" + group.getName() + ")");
             } catch (SessionDataGroupNotExistException e) {
                 subject.sendMessage("删除互通群时发现群" + group.getId() + "不存在");
             } catch (SessionDataNotExistException e) {
@@ -704,8 +766,38 @@ public class OpMcCommandStepListener implements ListenerHost {
             } catch (IOException e) {
                 subject.sendMessage("删除互通群时出现其它异常，请稍后重试或联系开发者");
             }
+        }
 
-            subject.sendMessage("删除互通群：" + group.getId() + "(" + group.getName() + ")");
+//        对不在列表的管理员进行添加
+        for (Long administrator : tempSession.getAdministrators()) {
+            if (!oldSession.hasAdministrator(administrator)) {
+                try {
+                    SessionDataOperation.addSessionDataAdministrator(tempSession.getId(), administrator);
+                    subject.sendMessage("添加管理员：" + administrator);
+                } catch (SessionDataAdministratorExistException e) {
+                    subject.sendMessage("添加互通群时发现管理员" + administrator + "已存在");
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("添加管理员QQ时发现会话号为" + tempSession.getId() + "的会话不存在");
+                } catch (Exception e) {
+                    subject.sendMessage("添加管理员QQ时出现其它异常，请稍后重试或联系开发者");
+                }
+            } else {
+                oldSession.getAdministrators().removeIf(o -> Objects.equals(o, administrator));
+            }
+        }
+
+//        此处之后剩下的为要删除的管理员
+        for (Long administrator : oldSession.getAdministrators()) {
+            try {
+                SessionDataOperation.removeSessionDataAdministrator(tempSession.getId(), administrator);
+                subject.sendMessage("删除管理员：" + administrator);
+            } catch (SessionDataNotExistException e) {
+                subject.sendMessage("删除管理员时发现会话号为" + tempSession.getId() + "的会话不存在");
+            } catch (SessionDataAdministratorNotExistException e) {
+                subject.sendMessage("删除管理员时发现管理员" + administrator + "不存在");
+            } catch (Exception e) {
+                subject.sendMessage("删除管理员时出现其它异常，请稍后重试或联系开发者");
+            }
         }
 
         isBusy = false;
@@ -939,5 +1031,4 @@ public class OpMcCommandStepListener implements ListenerHost {
         isBusy = false;
         OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
     }
-
 }

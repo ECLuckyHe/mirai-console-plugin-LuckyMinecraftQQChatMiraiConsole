@@ -24,11 +24,21 @@ public class Session {
     private String name;
     private final List<SessionGroup> groups;
     private String formatString;
+    private List<Long> administrators;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
 
     public boolean hasGroup(long groupId) {
         for (SessionGroup group : groups) {
             if (group.getId() == groupId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasAdministrator(long qq) {
+        for (Long administrator : administrators) {
+            if (administrator.equals(qq)) {
                 return true;
             }
         }
@@ -356,11 +366,20 @@ public class Session {
         this.name = name;
     }
 
-    public Session(long id, String name, List<SessionGroup> groups, String formatString) {
+    public List<Long> getAdministrators() {
+        return administrators;
+    }
+
+    public void setAdministrators(List<Long> administrators) {
+        this.administrators = administrators;
+    }
+
+    public Session(long id, String name, List<SessionGroup> groups, String formatString, List<Long> administrators) {
         this.id = id;
         this.name = name;
         this.groups = groups;
         this.formatString = formatString;
+        this.administrators = administrators;
     }
 
     @Override

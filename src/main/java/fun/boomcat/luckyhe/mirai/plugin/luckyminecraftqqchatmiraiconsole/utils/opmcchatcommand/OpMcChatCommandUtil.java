@@ -114,6 +114,8 @@ public class OpMcChatCommandUtil {
                 "gdel    删除互通群\n" +
                 "name    修改会话名\n" +
                 "format    修改群之间互通消息格式\n" +
+                "aadd    添加会话管理员\n" +
+                "adel    删除会话管理员\n" +
                 "ok    确认应用此操作\n" +
                 "exit    退出修改该会话操作\n" +
                 "quit    退出指令";
@@ -137,6 +139,24 @@ public class OpMcChatCommandUtil {
                 "操作：\n" +
                 "<群号>    需要删除的群号\n" +
                 "exit    退出删除互通群操作\n" +
+                "quit    退出指令";
+    }
+
+    public static String modifyAdministratorAddHelp() {
+        return "主菜单/修改会话/添加管理员\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<管理员QQ>    需要添加的管理员QQ\n" +
+                "exit    退出添加管理员指令\n" +
+                "quit    退出指令";
+    }
+
+    public static String modifyAdministratorDelHelp() {
+        return "主菜单/修改会话/删除管理员\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<管理员QQ>    需要删除的管理员QQ\n" +
+                "exit    退出删除管理员指令\n" +
                 "quit    退出指令";
     }
 

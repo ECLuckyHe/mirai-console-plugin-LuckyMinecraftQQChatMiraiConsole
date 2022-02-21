@@ -1,14 +1,10 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data;
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataGroupNotExistException;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
-import net.mamoe.mirai.console.plugin.jvm.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -183,6 +179,34 @@ public class SessionDataOperation {
         writeFile();
     }
 
+    public static void addSessionDataAdministrator(long sessionId, long qq) throws SessionDataNotExistException, IOException, SessionDataAdministratorExistException {
+        Map<String, Object> sessionData = getSessionData(sessionId);
+        List<Object> administrators = ((List<Object>) sessionData.get("administrators"));
+        for (Object administrator : administrators) {
+            long aqq = administrator instanceof Integer ? (Integer) administrator : (Long) administrator;
+            if (aqq == qq) {
+                throw new SessionDataAdministratorExistException();
+            }
+        }
+        administrators.add(qq);
+        writeFile();
+    }
+
+    public static void removeSessionDataAdministrator(long sessionId, long qq) throws SessionDataNotExistException, IOException, SessionDataAdministratorNotExistException {
+        Map<String, Object> sessionData = getSessionData(sessionId);
+        List<Object> administrators = (List<Object>) sessionData.get("administrators");
+        for (Object administrator : administrators) {
+            long aqq = administrator instanceof Integer ? (Integer) administrator : (Long) administrator;
+            if (aqq == qq) {
+                administrators.remove(administrator);
+                writeFile();
+                return;
+            }
+        }
+
+        throw new SessionDataAdministratorNotExistException();
+    }
+
     public static List<Session> getSessionObjects() throws FileNotFoundException {
         List<Object> sessionDataList = getSessionDataList();
         List<Session> sessionObjects = new ArrayList<>();
@@ -192,8 +216,8 @@ public class SessionDataOperation {
             long sessionId = sessionMap.get("id") instanceof Integer ? (int) sessionMap.get("id") : (long) sessionMap.get("id");
             String sessionName = ((String) sessionMap.get("name"));
             String formatString = ((String) sessionMap.get("format"));
-            List<Object> groups = (List<Object>) sessionMap.get("groups");
 
+            List<Object> groups = (List<Object>) sessionMap.get("groups");
             List<SessionGroup> groupObjects = new ArrayList<>();
             for (Object group : groups) {
                 Map<String, Object> groupMap = (Map<String, Object>) group;
@@ -203,7 +227,14 @@ public class SessionDataOperation {
                 groupObjects.add(new SessionGroup(groupId, groupNickname));
             }
 
-            sessionObjects.add(new Session(sessionId, sessionName, groupObjects, formatString));
+//            会话管理员
+            List<Object> administrators = (List<Object>) sessionMap.get("administrators");
+            List<Long> administratorObjects = new ArrayList<>();
+            for (Object administrator : administrators) {
+                administratorObjects.add(administrator instanceof Integer ? (int) administrator : (long) administrator);
+            }
+
+            sessionObjects.add(new Session(sessionId, sessionName, groupObjects, formatString, administratorObjects));
         }
 
         return sessionObjects;

@@ -28,13 +28,13 @@ public class OpMcChatCommand extends RawCommand {
             commandSender.sendMessage("请在QQ中发送该指令");
             return null;
         }
-        OpMcChatCommandStep step = OpMcChatCommandStepUtil.getStep(commandSender.getUser().getId());
+        OpMcChatCommandStep step = OpMcChatCommandStepUtil.getStep(user.getId());
         if (step != null) {
             commandSender.sendMessage("现在正在执行该指令，请按照提示完成");
             return null;
         }
 
-        OpMcChatCommandStepUtil.setStep(commandSender.getUser().getId(), OpMcChatCommandStep.MAIN, commandSender.getSubject());
+        OpMcChatCommandStepUtil.setStep(user.getId(), OpMcChatCommandStep.MAIN, commandSender.getSubject());
         return null;
     }
 }
