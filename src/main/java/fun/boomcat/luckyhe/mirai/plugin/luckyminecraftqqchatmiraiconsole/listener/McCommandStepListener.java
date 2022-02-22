@@ -1,26 +1,30 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener;
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MessageUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionModifyUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStepUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
+import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.MessageChain;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class McCommandStepListener implements ListenerHost {
     private LuckyMinecraftQQChatMiraiConsole INSTANCE;
@@ -32,7 +36,7 @@ public class McCommandStepListener implements ListenerHost {
     }
 
     @EventHandler
-    public void onMessage(MessageEvent e) {
+    public void onFriendMessage(FriendMessageEvent e) {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
         MessageChain message = e.getMessage();
         String content = message.contentToString();
@@ -365,6 +369,145 @@ public class McCommandStepListener implements ListenerHost {
     }
 
     public void onModifyOk(McChatCommandStep step, Contact subject, User sender, String content) {
+        Session tempSession = modifySessionIdTempMap.get(sender.getId());
+        Session oldSession;
 
+        try {
+            oldSession = SessionUtil.getSession(tempSession.getId());
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("会话号为" + tempSession.getId() + "的会话不存在");
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (FileNotFoundException e) {
+            subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if (SessionModifyUtil.isSessionModifying) {
+            subject.sendMessage("当前正有其它重要操作正在执行，执行完毕后开始应用会话设置");
+        }
+
+        synchronized (SessionModifyUtil.sessionModifyLock) {
+            SessionModifyUtil.isSessionModifying = true;
+
+            subject.sendMessage("正在应用会话设置，请稍等");
+
+//        对会话名进行修改
+            if (!tempSession.getName().equals(oldSession.getName())) {
+                try {
+                    SessionDataOperation.modifySessionDataName(tempSession.getId(), tempSession.getName());
+                    subject.sendMessage("原会话名：" + oldSession.getName() + "\n" +
+                            "修改为：" + tempSession.getName());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("修改会话名时发现会话号为" + tempSession.getId() + "的会话不存在");
+                } catch (Exception e) {
+                    subject.sendMessage("修改会话名时出现其它异常，请稍后重试或联系开发者");
+                }
+            }
+
+//        对消息格式进行修改
+            if (!tempSession.getFormatString().equals(oldSession.getFormatString())) {
+                try {
+                    SessionDataOperation.modifySessionDataFormat(tempSession.getId(), tempSession.getFormatString());
+                    subject.sendMessage("原消息格式：" + oldSession.getFormatString() + "\n" +
+                            "修改为：" + tempSession.getFormatString());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("修改消息格式时发现会话号为" + tempSession.getId() + "的会话不存在");
+                } catch (IOException e) {
+                    subject.sendMessage("修改消息格式时出现其它异常，请稍后重试或联系开发者");
+                }
+            }
+
+//        对不在列表的群进行添加
+            for (SessionGroup group : tempSession.getGroups()) {
+                if (!oldSession.hasGroup(group.getId())) {
+                    try {
+                        SessionDataOperation.addSessionDataGroup(tempSession.getId(), group.getId(), group.getName());
+                        subject.sendMessage("添加互通群：" + group.getId() + "(" + group.getName() + ")");
+                    } catch (SessionDataGroupExistException e) {
+                        subject.sendMessage("添加互通群时发现群" + group.getId() + "已存在");
+                    } catch (SessionDataNotExistException e) {
+                        subject.sendMessage("添加互通群时发现会话号为" + tempSession.getId() + "的会话不存在");
+                    } catch (IOException e) {
+                        subject.sendMessage("添加互通群时出现其它异常，请稍后重试或联系开发者");
+                    }
+                } else {
+//                删除掉在oldSession和tempSession中都存在的群
+                    oldSession.getGroups().removeIf(s -> s.getId() == group.getId());
+                }
+            }
+
+//        此处之后剩下的为要删除的群号
+            for (SessionGroup group : oldSession.getGroups()) {
+                try {
+                    SessionDataOperation.removeSessionDataGroup(tempSession.getId(), group.getId());
+                    subject.sendMessage("删除互通群：" + group.getId() + "(" + group.getName() + ")");
+                } catch (SessionDataGroupNotExistException e) {
+                    subject.sendMessage("删除互通群时发现群" + group.getId() + "不存在");
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("删除互通群时发现会话号为" + tempSession.getId() + "的会话不存在");
+                } catch (IOException e) {
+                    subject.sendMessage("删除互通群时出现其它异常，请稍后重试或联系开发者");
+                }
+            }
+
+//        对不在列表的管理员进行添加
+            for (Long administrator : tempSession.getAdministrators()) {
+                if (!oldSession.hasAdministrator(administrator)) {
+                    try {
+                        SessionDataOperation.addSessionDataAdministrator(tempSession.getId(), administrator);
+                        subject.sendMessage("添加管理员：" + administrator);
+                    } catch (SessionDataAdministratorExistException e) {
+                        subject.sendMessage("添加互通群时发现管理员" + administrator + "已存在");
+                    } catch (SessionDataNotExistException e) {
+                        subject.sendMessage("添加管理员QQ时发现会话号为" + tempSession.getId() + "的会话不存在");
+                    } catch (Exception e) {
+                        subject.sendMessage("添加管理员QQ时出现其它异常，请稍后重试或联系开发者");
+                    }
+                } else {
+                    oldSession.getAdministrators().removeIf(o -> Objects.equals(o, administrator));
+                }
+            }
+
+//        此处之后剩下的为要删除的管理员
+            for (Long administrator : oldSession.getAdministrators()) {
+                try {
+                    SessionDataOperation.removeSessionDataAdministrator(tempSession.getId(), administrator);
+                    subject.sendMessage("删除管理员：" + administrator);
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("删除管理员时发现会话号为" + tempSession.getId() + "的会话不存在");
+                } catch (SessionDataAdministratorNotExistException e) {
+                    subject.sendMessage("删除管理员时发现管理员" + administrator + "不存在");
+                } catch (Exception e) {
+                    subject.sendMessage("删除管理员时出现其它异常，请稍后重试或联系开发者");
+                }
+            }
+
+            SessionModifyUtil.isSessionModifying = false;
+        }
+
+        Session modifiedSession;
+        try {
+            modifiedSession = SessionUtil.getSession(tempSession.getId());
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("在获取修改后会话时发现没有会话号为" + tempSession.getId() + "的会话");
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (Exception e) {
+            subject.sendMessage("在获取修改后会话时出现其它异常，请稍后重试或联系开发者");
+            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        subject.sendMessage("对于会话" + tempSession.getId() + "的修改已完成\n" +
+                "====================\n" + SessionUtil.sessionToString(modifiedSession));
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
     }
+
+
 }

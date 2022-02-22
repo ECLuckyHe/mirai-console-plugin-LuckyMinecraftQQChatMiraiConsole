@@ -18,6 +18,7 @@ import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
+import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.event.events.MessageEvent;
 import net.mamoe.mirai.message.data.MessageChain;
 
@@ -49,7 +50,7 @@ public class OpMcCommandStepListener implements ListenerHost {
     }
 
     @EventHandler
-    public void onMessage(MessageEvent e) {
+    public void onFriendMessage(FriendMessageEvent e) {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
         MessageChain message = e.getMessage();
         String content = message.contentToString();
