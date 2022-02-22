@@ -4,6 +4,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.OpMcChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.McCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
@@ -21,6 +23,7 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -33,6 +36,8 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     private final String opMcChatCommandPrimaryName = "opmcchat";
     private final String[] opMcChatCommandSecondaryNames = {"mc互通管理", "互通管理"};
+    private final String mcChatCommandPrimaryName = "mcchat";
+    private final String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
 
     public String getOpMcChatCommandPrimaryName() {
         return opMcChatCommandPrimaryName;
@@ -40,6 +45,14 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     public String[] getOpMcChatCommandSecondaryNames() {
         return opMcChatCommandSecondaryNames;
+    }
+
+    public String getMcChatCommandPrimaryName() {
+        return mcChatCommandPrimaryName;
+    }
+
+    public String[] getMcChatCommandSecondaryNames() {
+        return mcChatCommandSecondaryNames;
     }
 
     //    监听主线程
@@ -159,25 +172,25 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
                 opMcChatCommandPrimaryName,
                 opMcChatCommandSecondaryNames,
                 commandPrefix + opMcChatCommandPrimaryName + " <操作>",
-                "mc互通相关指令",
+                "mc互通相关管理指令",
                 opMcChatPerm,
                 false
         ), false);
 
-//        String[] mcChatCommandSecondaryNames = {"mc互通", "互通"};
-//        CommandManager.INSTANCE.registerCommand(new McChatCommand(
-//                this,
-//                "mcchat",
-//                mcChatCommandSecondaryNames,
-//                commandPrefix + "mcchat <操作>",
-//                "mc互通相关指令",
-//                mcChatPerm,
-//                false
-//        ), false);
+        CommandManager.INSTANCE.registerCommand(new McChatCommand(
+                this,
+                mcChatCommandPrimaryName,
+                mcChatCommandSecondaryNames,
+                commandPrefix + mcChatCommandPrimaryName + " <操作>",
+                "mc互通相关指令",
+                mcChatPerm,
+                false
+        ), false);
     }
 
     private void loadListeners() {
         GlobalEventChannel.INSTANCE.registerListenerHost(new MessageListener());
         GlobalEventChannel.INSTANCE.registerListenerHost(new OpMcCommandStepListener(this));
+        GlobalEventChannel.INSTANCE.registerListenerHost(new McCommandStepListener(this));
     }
 }
