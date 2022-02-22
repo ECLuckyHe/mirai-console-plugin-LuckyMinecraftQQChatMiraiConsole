@@ -106,6 +106,7 @@ public class SessionDataOperation {
         newMap.put("name", sessionName);
         newMap.put("groups", new ArrayList<Long>());
         newMap.put("format", formatString);
+        newMap.put("administrators", new ArrayList<>());
 
         getSessionDataList().add(newMap);
         writeFile();

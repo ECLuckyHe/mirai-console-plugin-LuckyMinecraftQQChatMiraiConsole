@@ -12,6 +12,7 @@ import net.mamoe.mirai.utils.MiraiLogger;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class SessionUtil {
     private static List<Session> sessions;
@@ -116,13 +117,23 @@ public class SessionUtil {
 
     public static void closeAllConnections(String info) throws FileNotFoundException, InterruptedException {
         logger.info("开始关闭所有连接线程");
+        CountDownLatch cdl = new CountDownLatch(getSessions().size());
         for (Session session : getSessions()) {
-            session.sendClosePacketToMinecraftThread(info);
-            while (session.getMinecraftThreads().size() != 0) {
-                logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
-                Thread.sleep(1000);
-            }
+            AsyncCaller.run(() -> {
+                session.sendClosePacketToMinecraftThread(info);
+                while (session.getMinecraftThreads().size() != 0) {
+                    logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                cdl.countDown();
+            });
         }
+
+        cdl.await();
         logger.info("所有连接线程关闭完成");
     }
 
