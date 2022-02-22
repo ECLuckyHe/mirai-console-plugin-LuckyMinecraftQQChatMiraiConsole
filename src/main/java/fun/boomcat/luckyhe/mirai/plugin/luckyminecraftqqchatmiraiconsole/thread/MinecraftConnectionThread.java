@@ -16,7 +16,6 @@ import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -192,7 +191,9 @@ public class MinecraftConnectionThread extends Thread {
             Random random = new Random();
             while (isConnected) {
                 try {
-                    Thread.sleep(1000L * ConfigOperation.getHeartbeat());
+                    for (int i = 0; i < ConfigOperation.getHeartbeat() && isConnected; i++) {
+                        Thread.sleep(1000L);
+                    }
                 } catch (Exception e) {
                     isConnected = false;
 //                    e.printStackTrace();
