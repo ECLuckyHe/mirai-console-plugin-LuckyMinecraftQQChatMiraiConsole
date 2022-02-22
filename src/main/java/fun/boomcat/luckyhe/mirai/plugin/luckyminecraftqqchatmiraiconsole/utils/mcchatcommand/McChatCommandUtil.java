@@ -27,6 +27,7 @@ public class McChatCommandUtil {
                 "====================\n" +
                 "操作：\n" +
                 "<会话号>    需要修改的会话号\n" +
+                "list    查看名下会话号列表\n" +
                 "exit    退出修改会话操作\n" +
                 "quit    退出指令";
     }
@@ -77,6 +78,9 @@ public class McChatCommandUtil {
                 "%senderNickname%    发送者昵称\n" +
                 "%senderGroupNickname%    发送者群昵称\n" +
                 "%message%    消息内容\n" +
+                "====================\n" +
+                "一个例子：\n" +
+                "[%groupNickname%] <%senderGroupNickname%> %message%\n" +
                 "====================\n" +
                 "操作：\n" +
                 "<消息格式>    新的群之间消息互通格式\n" +

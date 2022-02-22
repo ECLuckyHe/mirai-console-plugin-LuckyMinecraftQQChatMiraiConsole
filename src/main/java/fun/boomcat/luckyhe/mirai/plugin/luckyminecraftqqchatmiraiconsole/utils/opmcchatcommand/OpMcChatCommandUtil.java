@@ -102,6 +102,7 @@ public class OpMcChatCommandUtil {
                 "====================\n" +
                 "操作：\n" +
                 "<会话号>    需要修改的会话号\n" +
+                "list    查看会话列表\n" +
                 "exit    退出修改会话操作\n" +
                 "quit    退出指令";
     }

@@ -18,7 +18,7 @@ import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.event.EventHandler;
 import net.mamoe.mirai.event.ListenerHost;
-import net.mamoe.mirai.event.events.MessageEvent;
+import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.message.data.MessageChain;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class OpMcCommandStepListener implements ListenerHost {
     }
 
     @EventHandler
-    public void onMessage(MessageEvent e) {
+    public void onFriendMessage(FriendMessageEvent e) {
         String commandPrefix = CommandManager.INSTANCE.getCommandPrefix();
         MessageChain message = e.getMessage();
         String content = message.contentToString();
@@ -441,6 +441,31 @@ public class OpMcCommandStepListener implements ListenerHost {
 //        修改会话输入会话号
         if ("exit".equalsIgnoreCase(content)) {
             OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+            return;
+        }
+
+        if ("list".equalsIgnoreCase(content)) {
+            //                查看所有会话号
+            StringBuilder allSessionInfo = new StringBuilder();
+            allSessionInfo.append("主菜单/查看会话信息/所有会话号\n");
+            allSessionInfo.append("====================\n");
+            allSessionInfo.append("会话号(会话名)\n");
+            List<Session> sessions;
+            try {
+                sessions = SessionUtil.getSessions();
+            } catch (Exception e) {
+                e.printStackTrace();
+                subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
+                subject.sendMessage(step.getInstruction());
+                return;
+            }
+
+            for (Session session : sessions) {
+                allSessionInfo.append(session.getId()).append("(").append(session.getName()).append(")").append("\n");
+            }
+
+            MessageUtil.pageSender(subject, allSessionInfo.toString());
+            subject.sendMessage(step.getInstruction());
             return;
         }
 
