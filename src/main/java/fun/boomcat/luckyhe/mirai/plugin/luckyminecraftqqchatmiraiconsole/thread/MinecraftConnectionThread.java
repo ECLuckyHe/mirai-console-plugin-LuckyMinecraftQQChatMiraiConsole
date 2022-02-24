@@ -50,6 +50,10 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> onlinePlayersCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> rconCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
+//    添加用户指令的队列
+    private final Queue<Long> addUserCommandQueue = new ConcurrentLinkedQueue<>();
+//    删除用户指令的队列
+    private final Queue<Long> delUserCommandQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -85,6 +89,7 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendRconCommandPacket(long groupId, long senderId, String command) {
+//        发送rcon指令
         rconCommandSendGroupQueue.add(groupId);
         VarInt packetId = new VarInt(0x22);
         VarLong senderIdLong = new VarLong(senderId);
@@ -97,6 +102,7 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendAnnouncementPacket(long senderId, String senderNickname, String announcement) {
+//        发送公告
         VarInt packetId = new VarInt(0x23);
         VarLong senderIdLong = new VarLong(senderId);
         VarIntString senderNicknameString = new VarIntString(senderNickname);
@@ -108,6 +114,47 @@ public class MinecraftConnectionThread extends Thread {
                 ByteUtil.byteMergeAll(senderIdLong.getBytes(), senderNicknameString.getBytes(), announcementString.getBytes())
         ));
     }
+
+    public synchronized void sendAddUserCommand(long senderId, String name, String userCommand, String mapCommand) {
+        VarInt packetId = new VarInt(0x25);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString nameString = new VarIntString(name);
+        VarIntString userCommandString = new VarIntString(userCommand);
+        VarIntString mapCommandString  =new VarIntString(mapCommand);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() +
+                        senderIdLong.getBytesLength() +
+                        nameString.getBytesLength() +
+                        userCommandString.getBytesLength() +
+                        mapCommandString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(
+                        senderIdLong.getBytes(),
+                        nameString.getBytes(),
+                        userCommandString.getBytes(),
+                        mapCommandString.getBytes()
+                )
+        ));
+    }
+
+    public synchronized void sendDelUserCommand(long senderId, String name) {
+        VarInt packetId = new VarInt(0x26);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString nameString = new VarIntString(name);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() +
+                        senderIdLong.getBytesLength() +
+                        nameString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(
+                        senderIdLong.getBytes(),
+                        nameString.getBytes()
+                )
+        ));
+    }
+
+
 
     @Override
     public void run() {
