@@ -116,6 +116,8 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendAddUserCommand(long senderId, String name, String userCommand, String mapCommand) {
+//        添加用户指令
+        addUserCommandQueue.add(senderId);
         VarInt packetId = new VarInt(0x25);
         VarLong senderIdLong = new VarLong(senderId);
         VarIntString nameString = new VarIntString(name);
@@ -139,6 +141,8 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendDelUserCommand(long senderId, String name) {
+//        删除用户指令
+        delUserCommandQueue.add(senderId);
         VarInt packetId = new VarInt(0x26);
         VarLong senderIdLong = new VarLong(senderId);
         VarIntString nameString = new VarIntString(name);
