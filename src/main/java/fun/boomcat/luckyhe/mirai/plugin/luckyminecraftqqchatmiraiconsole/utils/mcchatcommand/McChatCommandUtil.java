@@ -8,6 +8,7 @@ public class McChatCommandUtil {
                 "list    查看名下的会话信息\n" +
                 "modify    修改名下会话信息\n" +
                 "announce    向MC端发送公告\n" +
+                "uc    用户指令相关设置\n" +
                 "exit    返回到上一级（全局通用）\n" +
                 "quit    退出指令";
     }
@@ -128,4 +129,15 @@ public class McChatCommandUtil {
                 "exit    退出指定MC端操作\n" +
                 "quit    退出指令";
     }
+
+    public static String userCommandHelp() {
+        return "主菜单/用户指令设置\n" +
+                "====================\n" +
+                "<会话号> <连接名>    输入会话号和连接名以操作指定连接\n" +
+                "list    列出所有会话名和连接名\n" +
+                "exit    退出用户指令设置\n" +
+                "quit    退出指令";
+    }
+
+
 }

@@ -11,7 +11,8 @@ public enum McChatCommandStep {
     MODIFY_SESSION_NAME(McChatCommandUtil.modifySessionNameHelp()),
     ANNOUNCE(McChatCommandUtil.announceHelp()),
     ANNOUNCE_MC(McChatCommandUtil.announceMcHelp()),
-    ANNOUNCE_CONTENT(McChatCommandUtil.announceContentHelp());
+    ANNOUNCE_CONTENT(McChatCommandUtil.announceContentHelp()),
+    USER_COMMAND(McChatCommandUtil.userCommandHelp());
 
     private final String instruction;
     McChatCommandStep(String instruction) {

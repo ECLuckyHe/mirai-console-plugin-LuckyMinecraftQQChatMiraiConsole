@@ -125,6 +125,10 @@ public class McCommandStepListener implements ListenerHost {
                 announceTempMap.put(sender.getId(), announcement);
                 McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
                 break;
+//                用户指令相关
+            case "uc":
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND, subject);
+                break;
             case "exit":
                 McChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
                 break;
@@ -770,5 +774,10 @@ public class McCommandStepListener implements ListenerHost {
         }
 
         McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
+    }
+
+    public void onUserCommand(McChatCommandStep step, Contact subject, User sender, String content) {
+//        用户指令相关设置
+
     }
 }
