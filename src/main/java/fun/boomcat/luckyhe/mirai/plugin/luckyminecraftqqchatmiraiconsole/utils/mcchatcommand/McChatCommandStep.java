@@ -12,7 +12,10 @@ public enum McChatCommandStep {
     ANNOUNCE(McChatCommandUtil.announceHelp()),
     ANNOUNCE_MC(McChatCommandUtil.announceMcHelp()),
     ANNOUNCE_CONTENT(McChatCommandUtil.announceContentHelp()),
-    USER_COMMAND(McChatCommandUtil.userCommandHelp());
+    USER_COMMAND(McChatCommandUtil.userCommandHelp()),
+    USER_COMMAND_MENU(McChatCommandUtil.userCommandMenuHelp()),
+    USER_COMMAND_ADD_NAME(McChatCommandUtil.userCommandAddName()),
+    USER_COMMAND_ADD_COMMAND(McChatCommandUtil.userCommandAddCommand());
 
     private final String instruction;
     McChatCommandStep(String instruction) {
