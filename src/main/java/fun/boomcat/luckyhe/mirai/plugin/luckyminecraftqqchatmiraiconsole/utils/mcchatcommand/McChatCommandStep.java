@@ -14,8 +14,11 @@ public enum McChatCommandStep {
     ANNOUNCE_CONTENT(McChatCommandUtil.announceContentHelp()),
     USER_COMMAND(McChatCommandUtil.userCommandHelp()),
     USER_COMMAND_MENU(McChatCommandUtil.userCommandMenuHelp()),
-    USER_COMMAND_ADD_NAME(McChatCommandUtil.userCommandAddName()),
-    USER_COMMAND_ADD_COMMAND(McChatCommandUtil.userCommandAddCommand());
+    USER_COMMAND_ADD_NAME(McChatCommandUtil.userCommandAddNameHelp()),
+    USER_COMMAND_ADD_COMMAND(McChatCommandUtil.userCommandAddCommandHelp()),
+    USER_COMMAND_ADD_MAPPING(McChatCommandUtil.userCommandAddMappingHelp()),
+    USER_COMMAND_ADD_CONFIRM(McChatCommandUtil.userCommandAddConfirmHelp()),
+    USER_COMMAND_DEL(McChatCommandUtil.userCommandDelHelp());
 
     private final String instruction;
     McChatCommandStep(String instruction) {

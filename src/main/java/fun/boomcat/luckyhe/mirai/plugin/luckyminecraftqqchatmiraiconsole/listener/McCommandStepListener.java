@@ -13,6 +13,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.S
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStepUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.Announcement;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommandAdd;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
@@ -33,7 +34,9 @@ public class McCommandStepListener implements ListenerHost {
     private final static Map<Long, Session> modifySessionIdTempMap = new HashMap<>();
     //    临时存放正在发送的公告对象
     private final static Map<Long, Announcement> announceTempMap = new HashMap<>();
-    //    临时存放正在添加用户指令的指令对象
+    //    临时存放修改用户指令的对象
+    private final static Map<Long, UserCommand> userCommandTempMap = new HashMap<>();
+    //    临时存放修改用户指令的添加指令对象
     private final static Map<Long, UserCommandAdd> userCommandAddTempMap = new HashMap<>();
 
     public McCommandStepListener(LuckyMinecraftQQChatMiraiConsole I) {
@@ -113,6 +116,15 @@ public class McCommandStepListener implements ListenerHost {
                 break;
             case USER_COMMAND_ADD_COMMAND:
                 onUserCommandAddCommand(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_MAPPING:
+                onUserCommandAddMapping(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_CONFIRM:
+                onUserCommandAddConfirm(step, subject, sender, content);
+                break;
+            case USER_COMMAND_DEL:
+                onUserCommandDelCommand(step, subject, sender, content);
                 break;
         }
     }
@@ -880,17 +892,20 @@ public class McCommandStepListener implements ListenerHost {
         String serverName = content.substring(sessionIdString.length()).trim();
         boolean isExist = session.isMinecraftServerNameExist(serverName);
 
-//        创建对象，添加到临时map中
-        UserCommandAdd uca = new UserCommandAdd();
-        uca.setSessionId(sessionId);
-        uca.setSessionName(session.getName());
-        uca.setServerName(serverName);
-        userCommandAddTempMap.put(sender.getId(), uca);
+        UserCommand userCommand = new UserCommand();
+        userCommand.setSessionId(session.getId());
+        userCommand.setSessionName(session.getName());
+        userCommand.setServerName(serverName);
 
-        subject.sendMessage(uca.toString());
+        userCommandTempMap.put(sender.getId(), userCommand);
+
+        subject.sendMessage(userCommand.toString());
         if (!isExist) {
             subject.sendMessage("会话 " + sessionId + "(" + session.getName() + ")" + " 的连接 " + serverName + " 不存在\n" +
-                    "（后续不再提醒直至确认添加指令）");
+                    "可能原因为：\n" +
+                    "    连接名输入错误\n" +
+                    "    此刻连接名为此名的连接暂时未接入\n" +
+                    "可继续操作，将在发送确认指令时再次确认连接状态");
         }
         McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
     }
@@ -902,26 +917,62 @@ public class McCommandStepListener implements ListenerHost {
             return;
         }
 
-        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
 
         switch (content.toLowerCase()) {
-            case "add":
+            case "add": {
 //                添加用户指令
+                UserCommandAdd uca = new UserCommandAdd();
+                uca.setSessionId(userCommand.getSessionId());
+                uca.setSessionName(userCommand.getSessionName());
+                uca.setServerName(userCommand.getServerName());
+                userCommandAddTempMap.put(sender.getId(), uca);
+
+                subject.sendMessage(uca.toString());
                 McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_NAME, subject);
                 break;
-
-            case "del":
+            }
+            case "del": {
 //                删除用户指令
-
+                subject.sendMessage(userCommand.toString());
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_DEL, subject);
                 break;
-
-            case "list":
+            }
+            case "list": {
 //                列出用户指令
+                Session session;
+                try {
+                    session = SessionUtil.getUserSession(userCommand.getSessionId(), sender.getId());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("会话号为" + userCommand.getSessionId() + "的会话不存在");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                } catch (Exception e) {
+                    subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                }
 
+                MinecraftConnectionThread thread = session.getMinecraftThread(userCommand.getServerName());
+                if (thread == null) {
+                    subject.sendMessage("会话号为" + userCommand.getSessionId() + "的会话中不存在名称为" + userCommand.getServerName() + "的连接");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                }
+
+                thread.sendGetMcChatUserCommands(sender.getId());
+                subject.sendMessage("用户指令列表将在异步消息中返回");
+                subject.sendMessage(userCommand.toString());
+                subject.sendMessage(step.getInstruction());
                 break;
+            }
+
             default:
                 subject.sendMessage("不存在的指令");
-                subject.sendMessage(userCommandAdd.toString());
+                subject.sendMessage(userCommand.toString());
                 subject.sendMessage(step.getInstruction());
                 return;
         }
@@ -929,12 +980,15 @@ public class McCommandStepListener implements ListenerHost {
 
     public void onUserCommandAddName(McChatCommandStep step, Contact subject, User sender, String content) {
 //        添加用户指令 指令名
-        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
 
         if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
             McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
             return;
         }
+
+        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
 
         userCommandAdd.setName(content);
 
@@ -944,9 +998,11 @@ public class McCommandStepListener implements ListenerHost {
 
     public void onUserCommandAddCommand(McChatCommandStep step, Contact subject, User sender, String content) {
 //        添加用户指令 用户指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
         UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
 
         if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
             McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
             return;
         }
@@ -961,5 +1017,110 @@ public class McCommandStepListener implements ListenerHost {
 
         subject.sendMessage(userCommandAdd.toString());
         subject.sendMessage(sb.toString());
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_MAPPING, subject);
+    }
+
+    public void onUserCommandAddMapping(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 实际指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        UserCommandAdd uca = userCommandAddTempMap.get(sender.getId());
+        List<String> commandArgList = uca.getCommandArgList();
+
+        uca.setMapping(content);
+        List<String> mappingArgList = uca.getMappingArgList();
+
+        for (String s : mappingArgList) {
+            commandArgList.removeIf(o -> o.equals(s));
+        }
+
+        if (commandArgList.size() != 0) {
+            StringBuilder res = new StringBuilder("以下参数未使用：\n");
+            for (String s : commandArgList) {
+                res.append(s).append("\n");
+            }
+
+            uca.setMapping(null);
+            subject.sendMessage(res.toString());
+            subject.sendMessage(uca.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        subject.sendMessage(uca.toString());
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_CONFIRM, subject);
+    }
+
+    public void onUserCommandAddConfirm(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 确认
+
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+
+        switch (content.toLowerCase()) {
+            case "exit":
+                subject.sendMessage(userCommand.toString());
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+                break;
+            case "ok": {
+                Session session;
+                try {
+                    session = SessionUtil.getSession(userCommandAdd.getSessionId());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("会话号为" + userCommandAdd.getSessionId() + "的会话不存在");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                } catch (Exception e) {
+                    subject.sendMessage("出现其它异常，请稍后重试或者联系开发者");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                }
+
+                MinecraftConnectionThread minecraftThread = session.getMinecraftThread(userCommandAdd.getServerName());
+                if (minecraftThread == null) {
+                    subject.sendMessage("会话 " + userCommandAdd.getSessionId() + " 没有连接名为 " + userCommandAdd.getServerName() + " 的连接");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                }
+
+                minecraftThread.sendAddUserCommand(
+                        sender.getId(),
+                        userCommandAdd.getName(),
+                        userCommandAdd.getCommand(),
+                        userCommandAdd.getMapping()
+                );
+
+                subject.sendMessage("已发送添加用户指令数据包，执行结果将在另一条异步消息返回");
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+                break;
+            }
+            default:
+                subject.sendMessage("无该指令");
+                subject.sendMessage(userCommandAdd.toString());
+                subject.sendMessage(step.getInstruction());
+                break;
+        }
+    }
+
+    public void onUserCommandDelCommand(McChatCommandStep step, Contact subject, User sender, String content) {
+//        删除用户指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+
     }
 }

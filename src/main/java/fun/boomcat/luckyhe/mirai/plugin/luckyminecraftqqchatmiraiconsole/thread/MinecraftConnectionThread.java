@@ -8,10 +8,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
+import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -54,6 +52,8 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> addUserCommandQueue = new ConcurrentLinkedQueue<>();
 //    删除用户指令的队列
     private final Queue<Long> delUserCommandQueue = new ConcurrentLinkedQueue<>();
+//    获取用户指令（mcchat指令）队列
+    private final Queue<Long> getMcChatUserCommandsQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -158,7 +158,16 @@ public class MinecraftConnectionThread extends Thread {
         ));
     }
 
-
+    public synchronized void sendGetMcChatUserCommands(long senderId) {
+//        获取用户指令列表（mcchat指令）
+        getMcChatUserCommandsQueue.add(senderId);
+        VarInt packetId = new VarInt(0x27);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength()),
+                packetId,
+                new byte[] {}
+        ));
+    }
 
     @Override
     public void run() {
@@ -486,6 +495,66 @@ public class MinecraftConnectionThread extends Thread {
                                     commandRes.getContent()
                             ));
                             break;
+
+                        case 0x25: {
+//                            添加用户指令返回
+                            VarIntString msg = new VarIntString(packet.getData());
+                            Long id = addUserCommandQueue.poll();
+
+                            if (id == null) {
+                                logError(threadName, "没有人发送添加用户指令但却收到了添加用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            try {
+                                Bot.getInstances().get(0).getFriendOrFail(id).sendMessage("[异步消息] " + msg.getContent());
+                            } catch (Exception ignored) {
+
+                            }
+
+                            break;
+                        }
+
+                        case 0x27: {
+//                            获取用户指令列表（mcchat指令）
+                            Long id = getMcChatUserCommandsQueue.poll();
+                            if (id == null) {
+                                logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            byte[] data = packet.getData();
+                            int i = 0;
+                            VarInt commandLength = new VarInt(Arrays.copyOfRange(data, i, data.length));
+                            i += commandLength.getBytesLength();
+
+                            StringBuilder sb = new StringBuilder("[异步消息] 用户指令列表：\n");
+                            for (int j = 0; j < commandLength.getValue(); j++) {
+                                VarIntString name = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += name.getBytesLength();
+                                VarIntString command = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += command.getBytesLength();
+                                VarIntString mapping = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += mapping.getBytesLength();
+
+                                sb.append("指令名：").append(name.getContent()).append("\n");
+                                sb.append("用户指令：").append(command.getContent()).append("\n");
+                                sb.append("实际指令：").append(mapping.getContent()).append("\n");
+                                sb.append("\n");
+                            }
+
+                            try {
+                                MessageUtil.pageSender(Bot.getInstances().get(0).getFriendOrFail(id), sb.toString());
+                            } catch (Exception ignored) {
+
+                            }
+
+                            break;
+                        }
                     }
                 } catch (Exception e) {
 //                    e.printStackTrace();
