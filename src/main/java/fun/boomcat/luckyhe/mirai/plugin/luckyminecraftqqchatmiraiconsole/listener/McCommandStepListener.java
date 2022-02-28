@@ -15,6 +15,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.m
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.Announcement;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommandAdd;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommandDel;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
@@ -38,6 +39,8 @@ public class McCommandStepListener implements ListenerHost {
     private final static Map<Long, UserCommand> userCommandTempMap = new HashMap<>();
     //    临时存放修改用户指令的添加指令对象
     private final static Map<Long, UserCommandAdd> userCommandAddTempMap = new HashMap<>();
+//    临时存放修改用户指令的删除指令对象
+    private final static Map<Long, UserCommandDel> userCommandDelTempMap = new HashMap<>();
 
     public McCommandStepListener(LuckyMinecraftQQChatMiraiConsole I) {
         this.INSTANCE = I;
@@ -934,7 +937,13 @@ public class McCommandStepListener implements ListenerHost {
             }
             case "del": {
 //                删除用户指令
-                subject.sendMessage(userCommand.toString());
+                UserCommandDel ucd = new UserCommandDel();
+                ucd.setSessionId(userCommand.getSessionId());
+                ucd.setSessionName(userCommand.getSessionName());
+                ucd.setServerName(userCommand.getServerName());
+                userCommandDelTempMap.put(sender.getId(), ucd);
+
+                subject.sendMessage(ucd.toString());
                 McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_DEL, subject);
                 break;
             }
@@ -989,6 +998,13 @@ public class McCommandStepListener implements ListenerHost {
         }
 
         UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+
+        if ("list".equalsIgnoreCase(content)) {
+            subject.sendMessage("不能使用list作为指令名");
+            subject.sendMessage(userCommandAdd.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
 
         userCommandAdd.setName(content);
 
@@ -1092,7 +1108,7 @@ public class McCommandStepListener implements ListenerHost {
                     return;
                 }
 
-                minecraftThread.sendAddUserCommand(
+                minecraftThread.sendAddUserCommandPacket(
                         sender.getId(),
                         userCommandAdd.getName(),
                         userCommandAdd.getCommand(),
@@ -1114,13 +1130,57 @@ public class McCommandStepListener implements ListenerHost {
     public void onUserCommandDelCommand(McChatCommandStep step, Contact subject, User sender, String content) {
 //        删除用户指令
         UserCommand userCommand = userCommandTempMap.get(sender.getId());
-
+        UserCommandDel userCommandDel = userCommandDelTempMap.get(sender.getId());
         if ("exit".equalsIgnoreCase(content)) {
             subject.sendMessage(userCommand.toString());
             McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
             return;
         }
 
+//        先获取会话和连接
+        Session session;
+        try {
+            session = SessionUtil.getUserSession(userCommandDel.getSessionId(), sender.getId());
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("会话号为" + userCommandDel.getSessionId() + "的会话不存在");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (Exception e) {
+            subject.sendMessage("出现其它异常，请稍后重试或者联系开发者");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
 
+        MinecraftConnectionThread minecraftThread = session.getMinecraftThread(userCommandDel.getServerName());
+        if (minecraftThread == null) {
+            subject.sendMessage("会话 " + userCommandDel.getSessionId() + " 没有连接名为 " + userCommandDel.getServerName() + " 的连接");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if ("list".equalsIgnoreCase(content)) {
+            minecraftThread.sendGetMcChatUserCommands(sender.getId());
+            subject.sendMessage("已发送获取用户指令数据包，返回结果在另一条消息");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if ("ok".equalsIgnoreCase(content)) {
+            List<String> delNames = userCommandDel.getDelNames();
+            for (String delName : delNames) {
+                minecraftThread.sendDelUserCommandPacket(sender.getId(), delName);
+            }
+            subject.sendMessage("已发送删除用户指令数据包，返回结果在另一条消息");
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        userCommandDel.selectDelName(content);
+        subject.sendMessage(userCommandDel.toString());
+        subject.sendMessage(step.getInstruction());
     }
 }

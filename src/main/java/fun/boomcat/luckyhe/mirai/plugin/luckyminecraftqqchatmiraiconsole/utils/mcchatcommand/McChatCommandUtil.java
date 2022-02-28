@@ -211,7 +211,9 @@ public class McChatCommandUtil {
     public static String userCommandDelHelp() {
         return "主菜单/用户指令设置/删除用户指令\n" +
                 "====================\n" +
-                "<指令名>    需要删除的用户指令名（在用户指令设置使用list查看）\n" +
+                "<指令名>    需要删除的用户指令名（再次发送为反选）\n" +
+                "list    查看当前存在的用户指令\n" +
+                "ok    确认删除\n" +
                 "exit    退出删除用户指令\n" +
                 "quit    退出指令";
     }

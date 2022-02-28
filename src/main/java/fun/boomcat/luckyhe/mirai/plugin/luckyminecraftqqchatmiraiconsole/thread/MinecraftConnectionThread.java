@@ -115,7 +115,7 @@ public class MinecraftConnectionThread extends Thread {
         ));
     }
 
-    public synchronized void sendAddUserCommand(long senderId, String name, String userCommand, String mapCommand) {
+    public synchronized void sendAddUserCommandPacket(long senderId, String name, String userCommand, String mapCommand) {
 //        添加用户指令
         addUserCommandQueue.add(senderId);
         VarInt packetId = new VarInt(0x25);
@@ -140,7 +140,7 @@ public class MinecraftConnectionThread extends Thread {
         ));
     }
 
-    public synchronized void sendDelUserCommand(long senderId, String name) {
+    public synchronized void sendDelUserCommandPacket(long senderId, String name) {
 //        删除用户指令
         delUserCommandQueue.add(senderId);
         VarInt packetId = new VarInt(0x26);
@@ -503,6 +503,27 @@ public class MinecraftConnectionThread extends Thread {
 
                             if (id == null) {
                                 logError(threadName, "没有人发送添加用户指令但却收到了添加用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            try {
+                                Bot.getInstances().get(0).getFriendOrFail(id).sendMessage("[异步消息] " + msg.getContent());
+                            } catch (Exception ignored) {
+
+                            }
+
+                            break;
+                        }
+
+                        case 0x26: {
+//                            删除用户指令返回
+                            VarIntString msg = new VarIntString(packet.getData());
+                            Long id = delUserCommandQueue.poll();
+
+                            if (id == null) {
+                                logError(threadName, "没有人发送删除用户指令但却收到了删除用户指令回复包，开始关闭Socket");
                                 isConnected = false;
                                 socket.close();
                                 break;
