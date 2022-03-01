@@ -33,6 +33,8 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString onlinePlayersCommandResponseSeparator;
     private final VarIntString rconCommandPrefix;
     private final VarIntString rconCommandResultFormat;
+    private final VarIntString userCommandPrefix;
+    private final VarIntString userBindPrefix;
 
     //    断开原因
     private String disconnectReason = "异常退出";
@@ -54,6 +56,8 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> delUserCommandQueue = new ConcurrentLinkedQueue<>();
 //    获取用户指令（mcchat指令）队列
     private final Queue<Long> getMcChatUserCommandsQueue = new ConcurrentLinkedQueue<>();
+//    绑定qq和mcid队列（群号）
+    private final Queue<Long> userBindQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -137,6 +141,20 @@ public class MinecraftConnectionThread extends Thread {
                         userCommandString.getBytes(),
                         mapCommandString.getBytes()
                 )
+        ));
+    }
+
+    public synchronized void sendUserBindPacket(long groupId, long senderId, String mcid) {
+//        绑定qq和mcid
+        userBindQueue.add(groupId);
+        VarInt packetId = new VarInt(0x28);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString mcidString = new VarIntString(mcid);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + mcidString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), mcidString.getBytes())
         ));
     }
 
@@ -576,6 +594,27 @@ public class MinecraftConnectionThread extends Thread {
 
                             break;
                         }
+
+                        case 0x28: {
+//                            绑定mcid和qq返回结果
+                            Long groupId = userBindQueue.poll();
+                            if (groupId == null) {
+                                logError(threadName, "没有人发送绑定用户数据包但却收到了绑定用户回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            VarIntString msg = new VarIntString(packet.getData());
+
+                            try {
+                                Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(msg.getContent());
+                            } catch (Exception ignored) {
+
+                            }
+
+                            break;
+                        }
                     }
                 } catch (Exception e) {
 //                    e.printStackTrace();
@@ -663,6 +702,14 @@ public class MinecraftConnectionThread extends Thread {
         return rconCommandPrefix;
     }
 
+    public VarIntString getUserCommandPrefix() {
+        return userCommandPrefix;
+    }
+
+    public VarIntString getUserBindPrefix() {
+        return userBindPrefix;
+    }
+
     public MinecraftConnectionThread(
             Socket socket,
             VarLong sessionId,
@@ -676,7 +723,9 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString onlinePlayersCommandResponseFormat,
             VarIntString onlinePlayersCommandResponseSeparator,
             VarIntString rconCommandPrefix,
-            VarIntString rconCommandResultFormat
+            VarIntString rconCommandResultFormat,
+            VarIntString userCommandPrefix,
+            VarIntString userBindPrefix
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -691,6 +740,8 @@ public class MinecraftConnectionThread extends Thread {
         this.onlinePlayersCommandResponseSeparator = onlinePlayersCommandResponseSeparator;
         this.rconCommandPrefix = rconCommandPrefix;
         this.rconCommandResultFormat = rconCommandResultFormat;
+        this.userCommandPrefix = userCommandPrefix;
+        this.userBindPrefix = userBindPrefix;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());

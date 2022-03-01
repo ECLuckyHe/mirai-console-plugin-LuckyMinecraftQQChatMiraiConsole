@@ -106,20 +106,21 @@ public class Session {
     ) throws FileNotFoundException {
 //        处理从群来的消息
 
+        boolean found = false;
+        for (SessionGroup group : groups) {
+            if (group.getId() == groupId) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
 //        发送获取在线玩家信息数据
         for (MinecraftConnectionThread thread : minecraftThreads) {
 //            群号不在
-            boolean found = false;
-            for (SessionGroup group : groups) {
-                if (group.getId() == groupId) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                continue;
-            }
 
             VarIntString[] onlinePlayersCommands = thread.getOnlinePlayersCommands();
             for (VarIntString onlinePlayersCommand : onlinePlayersCommands) {
@@ -133,18 +134,36 @@ public class Session {
             }
 
 //            发送指令部分
-            String prefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+            String opCommandPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
                     thread.getRconCommandPrefix().getContent(),
                     MinecraftFormatPlaceholder.SERVER_NAME,
                     thread.getServerName().getContent()
             );
+            String userCommandPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getUserCommandPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            );
+            String userBindPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getUserBindPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            );
 
-            assert prefix != null;
-            if (!message.contentToString().startsWith(prefix)) {
-                continue;
+//            assert opCommandPrefix != null;
+//            if (!message.contentToString().startsWith(opCommandPrefix)) {
+//                continue;
+//            }
+
+            if (message.contentToString().startsWith(opCommandPrefix)) {
+                thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(opCommandPrefix.length()));
             }
+            if (message.contentToString().startsWith(userCommandPrefix)) {
 
-            thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(prefix.length()));
+            }
+            if (message.contentToString().startsWith(userBindPrefix)) {
+                thread.sendUserBindPacket(groupId, senderId, message.contentToString().substring(userBindPrefix.length()));
+            }
         }
 
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);

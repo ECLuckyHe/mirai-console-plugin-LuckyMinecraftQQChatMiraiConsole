@@ -30,6 +30,8 @@ Client应该连接后主动发送此数据包。
 | onlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符 |
 | rconCommandPrefix                     | `VarIntString`   | rcon指令前缀      |
 | rconCommandResultFormat               | `VarIntString`   | rcon指令返回结果格式  |
+| userCommandPrefix                     | `VarIntString`   | 用户指令前缀        |
+| userBindPrefix                        | `VarIntString`   | 用户绑定mcid与qq前缀 |
 
 #### 往Client
 
@@ -159,6 +161,17 @@ Pong，回应Ping包。
 
 <br>
 
+要求绑定qq和mcid时发送该包，当客户端收到该数据包后返回执行结果。  
+后续由在MC端的对应玩家操作。  
+包ID：**0x28**
+
+| 项目  | 类型             | 描述       |
+|-----|----------------|----------|
+| qq  | `VarLong`      | 玩家的qq    |
+| id  | `VarIntString` | 玩家的mc id |
+
+<br>
+
 关闭连接，当关闭时发送，并携带关闭信息，发送后直接关闭。  
 包ID: **0xF0**
 
@@ -283,6 +296,15 @@ Ping包。
 | command1 | `VarIntString` | 用户指令1     |
 | mapping1 | `VarIntString` | 用户指令实际指令1 |
 | ...      | `...`          | ...       |
+
+<br>
+
+玩家绑定信息返回内容，当服务端要求绑定玩家qq和mcid时返回。  
+包ID：**0x28**
+
+| 项目  | 类型             | 描述   |
+|-----|----------------|------|
+| msg | `VarIntString` | 返回信息 |
 
 <br>
 
