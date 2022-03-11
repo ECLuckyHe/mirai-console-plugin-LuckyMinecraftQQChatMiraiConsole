@@ -12,6 +12,7 @@
 + 下载插件文件并保存至`./plugins/`
 + 启动 MCL `./mcl`
 + 插件配置文件自动生成于目录`./config/luckyhe.luckyminecraftqqchatmiraiconsole/`
++ **如果在聊天中无法执行指令，则将[此插件](./MessageCommandListener.jar)也添加到`./plugins/`中**
 
 #### 使用说明
 + [`v1.1.x`（最新）](./docs/1.1.x.md)
