@@ -159,7 +159,7 @@ public class Session {
                 thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(opCommandPrefix.length()));
             }
             if (message.contentToString().startsWith(userCommandPrefix)) {
-
+                thread.sendUserCommandPacket(senderId, groupId, message.contentToString().substring(userCommandPrefix.length()));
             }
             if (message.contentToString().startsWith(userBindPrefix)) {
                 thread.sendUserBindPacket(groupId, senderId, message.contentToString().substring(userBindPrefix.length()));
