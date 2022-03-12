@@ -8,6 +8,7 @@ public class McChatCommandUtil {
                 "list    查看名下的会话信息\n" +
                 "modify    修改名下会话信息\n" +
                 "announce    向MC端发送公告\n" +
+                "uc    用户指令相关设置\n" +
                 "exit    返回到上一级（全局通用）\n" +
                 "quit    退出指令";
     }
@@ -128,4 +129,94 @@ public class McChatCommandUtil {
                 "exit    退出指定MC端操作\n" +
                 "quit    退出指令";
     }
+
+    public static String userCommandHelp() {
+        return "主菜单/用户指令设置\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<会话号> <连接名>    输入会话号和连接名以操作指定连接\n" +
+                "list    列出所有会话名和连接名\n" +
+                "exit    退出用户指令设置\n" +
+                "quit    退出指令";
+    }
+
+    public static String userCommandMenuHelp() {
+        return "主菜单/用户指令设置/选择修改操作\n" +
+                "====================\n" +
+                "由于用户指令存储在MC端\n" +
+                "这里的操作都是在确认后才进行远程修改\n" +
+                "====================\n" +
+                "操作：\n" +
+                "list    查看当前存在的用户指令\n" +
+                "add    添加用户指令\n" +
+                "del    删除用户指令\n" +
+                "exit    退出用户指令设置\n" +
+                "quit    退出指令";
+    }
+
+    public static String userCommandAddNameHelp() {
+        return "主菜单/用户指令设置/添加用户指令/输入新用户指令名\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<指令名>    输入新的指令名用于标记该指令（备注）\n" +
+                "exit    退出添加用户指令\n" +
+                "quit    退出指令";
+    }
+
+    public static String userCommandAddCommandHelp() {
+        return "主菜单/用户指令设置/添加用户指令/输入用户指令\n" +
+                "====================\n" +
+                "注意：此步要求输入的是用户输入的指令\n" +
+                "假设用户指令为：创造\n" +
+                "实际执行指令为：gamemode creative %playerName%\n" +
+                "那么当Lucky_He在同会话群内发送：创造\n" +
+                "则MC端执行指令：/gamemode creative Lucky_He\n" +
+                "至于QQ与MC的ID的映射关系，由玩家自行绑定\n" +
+                "====================\n" +
+                "自定义参数格式为：#{test}\n" +
+                "如定义用户指定：模式 #{mode}\n" +
+                "实际指令：gamemode #{mode} %playerName%\n" +
+                "则当Lucky_He在群内发送：模式 survival\n" +
+                "则MC端执行指令：/gamemode survival Lucky_He\n" +
+                "====================\n" +
+                "玩家名字请用%playerName%代替\n" +
+                "#{test} 的中括号中可以取任意名字，但不能包含空格\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<新指令>    一个新的用户指令\n" +
+                "exit    退出添加用户指令\n" +
+                "quit    退出指令";
+    }
+    public static String userCommandAddMappingHelp() {
+        return "主菜单/用户指令设置/添加用户指令/输入实际指令\n" +
+                "====================\n" +
+                "该步输入的是用户指令对应的实际指令\n" +
+                "当用户发送用户指令时，实际执行的是该条指令\n" +
+                "#{test} 类型的参数必须要在该步中全部使用\n" +
+                "====================\n" +
+                "操作：\n" +
+                "<新指令>    输入用户指令对应的实际指令\n" +
+                "exit    退出添加用户指令\n" +
+                "quit    退出指令";
+    }
+
+    public static String userCommandAddConfirmHelp() {
+        return "主菜单/用户指令设置/添加用户指令/确认添加\n" +
+                "====================\n" +
+                "ok    确认添加指令\n" +
+                "exit    退出添加用户指令\n" +
+                "quit    退出指令";
+    }
+
+    public static String userCommandDelHelp() {
+        return "主菜单/用户指令设置/删除用户指令\n" +
+                "====================\n" +
+                "<指令名>    需要删除的用户指令名（再次发送为反选）\n" +
+//                此处使用list查看指令列表，因此在添加指令名时应拒绝起名为list
+                "list    查看当前存在的用户指令\n" +
+                "ok    确认删除\n" +
+                "exit    退出删除用户指令\n" +
+                "quit    退出指令";
+    }
+
 }

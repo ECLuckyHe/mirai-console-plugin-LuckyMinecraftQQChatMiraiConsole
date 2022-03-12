@@ -21,7 +21,6 @@ import net.mamoe.mirai.event.ListenerHost;
 import net.mamoe.mirai.event.events.FriendMessageEvent;
 import net.mamoe.mirai.message.data.MessageChain;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,6 +165,7 @@ public class OpMcCommandStepListener implements ListenerHost {
                 try {
                     subject.sendMessage(announcement.toOutputString(SessionUtil.getSessions()));
                 } catch (Exception e) {
+                    e.printStackTrace();
                     subject.sendMessage("在获取会话列表时产生异常，请稍后重试或联系开发者");
                     subject.sendMessage(step.getInstruction());
                     return;
@@ -486,6 +486,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             subject.sendMessage(step.getInstruction());
             return;
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
             subject.sendMessage(step.getInstruction());
             return;
@@ -734,6 +735,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             subject.sendMessage(step.getInstruction());
             return;
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
             subject.sendMessage(step.getInstruction());
@@ -757,6 +759,7 @@ public class OpMcCommandStepListener implements ListenerHost {
                 } catch (SessionDataNotExistException e) {
                     subject.sendMessage("修改会话名时发现会话号为" + tempSession.getId() + "的会话不存在");
                 } catch (Exception e) {
+                    e.printStackTrace();
                     subject.sendMessage("修改会话名时出现其它异常，请稍后重试或联系开发者");
                 }
             }
@@ -769,7 +772,8 @@ public class OpMcCommandStepListener implements ListenerHost {
                             "修改为：" + tempSession.getFormatString());
                 } catch (SessionDataNotExistException e) {
                     subject.sendMessage("修改消息格式时发现会话号为" + tempSession.getId() + "的会话不存在");
-                } catch (IOException e) {
+                } catch (Exception e) {
+                    e.printStackTrace();
                     subject.sendMessage("修改消息格式时出现其它异常，请稍后重试或联系开发者");
                 }
             }
@@ -784,7 +788,8 @@ public class OpMcCommandStepListener implements ListenerHost {
                         subject.sendMessage("添加互通群时发现群" + group.getId() + "已存在");
                     } catch (SessionDataNotExistException e) {
                         subject.sendMessage("添加互通群时发现会话号为" + tempSession.getId() + "的会话不存在");
-                    } catch (IOException e) {
+                    } catch (Exception e) {
+                        e.printStackTrace();
                         subject.sendMessage("添加互通群时出现其它异常，请稍后重试或联系开发者");
                     }
                 } else {
@@ -802,7 +807,8 @@ public class OpMcCommandStepListener implements ListenerHost {
                     subject.sendMessage("删除互通群时发现群" + group.getId() + "不存在");
                 } catch (SessionDataNotExistException e) {
                     subject.sendMessage("删除互通群时发现会话号为" + tempSession.getId() + "的会话不存在");
-                } catch (IOException e) {
+                } catch (Exception e) {
+                    e.printStackTrace();
                     subject.sendMessage("删除互通群时出现其它异常，请稍后重试或联系开发者");
                 }
             }
@@ -818,6 +824,7 @@ public class OpMcCommandStepListener implements ListenerHost {
                     } catch (SessionDataNotExistException e) {
                         subject.sendMessage("添加管理员QQ时发现会话号为" + tempSession.getId() + "的会话不存在");
                     } catch (Exception e) {
+                        e.printStackTrace();
                         subject.sendMessage("添加管理员QQ时出现其它异常，请稍后重试或联系开发者");
                     }
                 } else {
@@ -835,6 +842,7 @@ public class OpMcCommandStepListener implements ListenerHost {
                 } catch (SessionDataAdministratorNotExistException e) {
                     subject.sendMessage("删除管理员时发现管理员" + administrator + "不存在");
                 } catch (Exception e) {
+                    e.printStackTrace();
                     subject.sendMessage("删除管理员时出现其它异常，请稍后重试或联系开发者");
                 }
             }
@@ -852,6 +860,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             subject.sendMessage(step.getInstruction());
             return;
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("在获取修改后会话时出现其它异常，请稍后重试或联系开发者");
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
             subject.sendMessage(step.getInstruction());
@@ -875,6 +884,7 @@ public class OpMcCommandStepListener implements ListenerHost {
         try {
             sessions = SessionUtil.getSessions();
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("发送公告功能在获取会话列表时产生异常，请稍后重试或联系开发者");
             subject.sendMessage(step.getInstruction());
             return;
@@ -908,6 +918,7 @@ public class OpMcCommandStepListener implements ListenerHost {
         try {
             sessions = SessionUtil.getSessions();
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("发送公告内容设置在获取会话列表时产生异常，请稍后重试或联系开发者");
 //            跳回到上一步，因为此处无法调用announcement.toOutputString
             OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
@@ -933,6 +944,7 @@ public class OpMcCommandStepListener implements ListenerHost {
         try {
             sessions = SessionUtil.getSessions();
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("发送公告连接设置在获取会话列表时产生异常，请稍后重试或联系开发者");
             OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
             return;
@@ -995,6 +1007,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             subject.sendMessage(step.getInstruction());
             return;
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("获取会话时出现其它异常，请稍后重试或联系开发者");
             subject.sendMessage(announcement.toOutputString(sessions));
             subject.sendMessage(step.getInstruction());
@@ -1042,6 +1055,7 @@ public class OpMcCommandStepListener implements ListenerHost {
         try {
             sessions = SessionUtil.getSessions();
         } catch (Exception e) {
+            e.printStackTrace();
             subject.sendMessage("发送公告过程中在获取会话列表时产生异常，请稍后重试或联系开发者");
             OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
             return;
