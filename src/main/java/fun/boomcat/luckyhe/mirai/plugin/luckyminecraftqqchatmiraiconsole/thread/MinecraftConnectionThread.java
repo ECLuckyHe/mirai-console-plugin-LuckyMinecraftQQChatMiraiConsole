@@ -58,6 +58,8 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> getMcChatUserCommandsQueue = new ConcurrentLinkedQueue<>();
 //    绑定qq和mcid队列（群号）
     private final Queue<Long> userBindQueue = new ConcurrentLinkedQueue<>();
+//    发送用户指令队列（群号）
+    private final Queue<Long> userCommandGroupQueue =  new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -116,6 +118,20 @@ public class MinecraftConnectionThread extends Thread {
                 new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + senderNicknameString.getBytesLength() + announcementString.getBytesLength()),
                 packetId,
                 ByteUtil.byteMergeAll(senderIdLong.getBytes(), senderNicknameString.getBytes(), announcementString.getBytes())
+        ));
+    }
+
+    public synchronized void sendUserCommandPacket(long senderId, long groupId, String command) {
+//        发送用户指令
+        userCommandGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x24);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString commandString = new VarIntString(command);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + commandString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), commandString.getBytes())
         ));
     }
 
@@ -513,6 +529,27 @@ public class MinecraftConnectionThread extends Thread {
                                     commandRes.getContent()
                             ));
                             break;
+
+                        case 0x24: {
+//                            用户指令返回结果
+                            VarIntString commandResult = new VarIntString(packet.getData());
+                            Long groupId = userCommandGroupQueue.poll();
+                            if (groupId == null) {
+//                                    没有人发送指令但却收到了指令回复
+                                logError(threadName, "没有人发送用户指令但却收到了用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            try {
+                                Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(commandResult.getContent());
+                            } catch (Exception e) {
+//                                e.printStackTrace();
+                            }
+
+                            break;
+                        }
 
                         case 0x25: {
 //                            添加用户指令返回
