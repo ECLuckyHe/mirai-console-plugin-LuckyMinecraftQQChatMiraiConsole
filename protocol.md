@@ -15,23 +15,25 @@
 Client应该连接后主动发送此数据包。  
 包ID: **0x00**
 
-| 项目                                    | 类型               | 描述            |
-|---------------------------------------|------------------|---------------|
-| sessionId                             | `VarLong`        | 会话号           |
-| serverName                            | `VarIntString`   | 服务器名称         |
-| joinFormatString                      | `VarIntString`   | 玩家进入游戏消息格式    |
-| quitFormatString                      | `VarIntString`   | 玩家退出游戏消息格式    |
-| msgFormatString                       | `VarIntString`   | 玩家发送消息的消息格式   |
-| deathFormatString                     | `VarIntString`   | 玩家死亡的消息格式     |
-| kickFormatString                      | `VarIntString`   | 玩家被踢出服务器的消息格式 |
-| onlinePlayersCommandsCount            | `VarInt`         | 获取在线玩家列表的指令数  |
-| onlinePlayersCommands                 | `VarIntString[]` | 在线玩家指令        |
-| onlinePlayersCommandResponseFormat    | `VarIntString`   | 在线玩家列表消息格式    |
-| onlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符 |
-| rconCommandPrefix                     | `VarIntString`   | rcon指令前缀      |
-| rconCommandResultFormat               | `VarIntString`   | rcon指令返回结果格式  |
-| userCommandPrefix                     | `VarIntString`   | 用户指令前缀        |
-| userBindPrefix                        | `VarIntString`   | 用户绑定mcid与qq前缀 |
+| 项目                                    | 类型               | 描述               |
+|---------------------------------------|------------------|------------------|
+| sessionId                             | `VarLong`        | 会话号              |
+| serverName                            | `VarIntString`   | 服务器名称            |
+| joinFormatString                      | `VarIntString`   | 玩家进入游戏消息格式       |
+| quitFormatString                      | `VarIntString`   | 玩家退出游戏消息格式       |
+| msgFormatString                       | `VarIntString`   | 玩家发送消息的消息格式      |
+| deathFormatString                     | `VarIntString`   | 玩家死亡的消息格式        |
+| kickFormatString                      | `VarIntString`   | 玩家被踢出服务器的消息格式    |
+| onlinePlayersCommandsCount            | `VarInt`         | 获取在线玩家列表的指令数     |
+| onlinePlayersCommands                 | `VarIntString[]` | 在线玩家指令           |
+| onlinePlayersCommandResponseFormat    | `VarIntString`   | 在线玩家列表消息格式       |
+| onlinePlayersCommandResponseSeparator | `VarIntString`   | 在线玩家列表消息玩家分隔符    |
+| rconCommandPrefix                     | `VarIntString`   | rcon指令前缀         |
+| rconCommandResultFormat               | `VarIntString`   | rcon指令返回结果格式     |
+| userCommandPrefix                     | `VarIntString`   | 用户指令前缀           |
+| userBindPrefix                        | `VarIntString`   | 用户绑定mcid与qq前缀    |
+| getUserCommandCount                   | `VarInt`         | 获取\[获取用户指令]的指令条数 |
+| getUserCommandsCommand                | `VarIntString[]` | 获取\[获取用户指令]的指令列表 |
 
 #### 往Client
 
@@ -172,6 +174,15 @@ Pong，回应Ping包。
 
 <br>
 
+要求获取用户指令列表，当客户端收到该数据包后返回所有指令所构成的列表（普通用户）。  
+包ID：**0x29**
+
+| 项目  | 类型  | 描述  |
+|-----|-----|-----|
+| 无   | 无   | 无   |
+
+<br>
+
 关闭连接，当关闭时发送，并携带关闭信息，发送后直接关闭。  
 包ID: **0xF0**
 
@@ -305,6 +316,19 @@ Ping包。
 | 项目  | 类型             | 描述   |
 |-----|----------------|------|
 | msg | `VarIntString` | 返回信息 |
+
+<br>
+
+用户指令列表，当服务端要求获取用户指令列表时返回（普通用户）。  
+包ID：**0x29**
+
+| 项目       | 类型             | 描述        |
+|----------|----------------|-----------|
+| count    | `VarInt`       | 用户指令总数    |
+| name1    | `VarIntString` | 用户指令名1    |
+| command1 | `VarIntString` | 用户指令1     |
+| mapping1 | `VarIntString` | 用户指令实际指令1 |
+| ...      | `...`          | ...       |
 
 <br>
 

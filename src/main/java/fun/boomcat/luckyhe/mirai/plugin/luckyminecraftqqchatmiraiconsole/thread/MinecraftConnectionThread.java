@@ -10,6 +10,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -35,6 +36,7 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString rconCommandResultFormat;
     private final VarIntString userCommandPrefix;
     private final VarIntString userBindPrefix;
+    private final VarIntString[] getUserCommandsCommands;
 
     //    断开原因
     private String disconnectReason = "异常退出";
@@ -60,6 +62,8 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> userBindQueue = new ConcurrentLinkedQueue<>();
     //    发送用户指令队列（群号）
     private final Queue<Long> userCommandGroupQueue = new ConcurrentLinkedQueue<>();
+    //    获取用户指令（普通用户）队列
+    private final Queue<Long> getUserCommandsGroupQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -200,6 +204,17 @@ public class MinecraftConnectionThread extends Thread {
                 new VarInt(packetId.getBytesLength()),
                 packetId,
                 new byte[]{}
+        ));
+    }
+
+    public synchronized void sendGetUserCommands(long groupId) {
+//        获取用户指令列表（普通用户）
+        getUserCommandsGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x29);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength()),
+                packetId,
+                new byte[] {}
         ));
     }
 
@@ -506,7 +521,7 @@ public class MinecraftConnectionThread extends Thread {
                             );
 
 //                                发送消息到群内
-                            session.sendMessageToGroup(getOnlineGroup, res);
+                            session.sendMessageToGroup(getOnlineGroup, new PlainText(Objects.requireNonNull(res)));
                             break;
 
                         case 0x22:
@@ -521,13 +536,13 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            session.sendMessageToGroup(commandGroupId, ReplacePlaceholderUtil.replacePlaceholderWithString(
+                            session.sendMessageToGroup(commandGroupId, new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                     rconCommandResultFormat.getContent(),
                                     MinecraftFormatPlaceholder.SERVER_NAME,
                                     serverName.getContent(),
                                     MinecraftFormatPlaceholder.RESULT,
                                     commandRes.getContent()
-                            ));
+                            ))));
                             break;
 
                         case 0x24: {
@@ -542,13 +557,13 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            session.sendMessageToGroup(groupId, ReplacePlaceholderUtil.replacePlaceholderWithString(
+                            session.sendMessageToGroup(groupId, new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                     rconCommandResultFormat.getContent(),
                                     MinecraftFormatPlaceholder.SERVER_NAME,
                                     serverName.getContent(),
                                     MinecraftFormatPlaceholder.RESULT,
                                     commandResult.getContent()
-                            ));
+                            ))));
 
 
                             break;
@@ -566,7 +581,7 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            session.sendMessageToFriend(id, "[异步消息] " + msg.getContent());
+                            session.sendMessageToFriend(id, new PlainText("[异步消息] " + msg.getContent()));
 
                             break;
                         }
@@ -583,19 +598,36 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            session.sendMessageToFriend(id, "[异步消息] " + msg.getContent());
+                            session.sendMessageToFriend(id, new PlainText("[异步消息] " + msg.getContent()));
 
                             break;
                         }
 
-                        case 0x27: {
-//                            获取用户指令列表（mcchat指令）
-                            Long id = getMcChatUserCommandsQueue.poll();
-                            if (id == null) {
-                                logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
-                                isConnected = false;
-                                socket.close();
-                                break;
+                        case 0x27:
+                        case 0x29: {
+//                            获取用户指令列表
+                            Long qq = null;
+                            Long groupId = null;
+                            if (packet.getId().getValue() == 0x27) {
+//                                mcchat获取
+                                qq = getMcChatUserCommandsQueue.poll();
+                                if (qq == null) {
+                                    logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
+                            }
+
+                            if (packet.getId().getValue() == 0x29) {
+//                                普通用户获取
+                                groupId = getUserCommandsGroupQueue.poll();
+                                if (groupId == null) {
+                                    logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
                             }
 
                             byte[] data = packet.getData();
@@ -621,13 +653,21 @@ public class MinecraftConnectionThread extends Thread {
                                 commandMaps.add(newMap);
                             }
 
-                            try {
-                                Bot.getInstances().get(0).getFriend(id).sendMessage(UserCommandUtil.getForwardMessage(
+                            if (packet.getId().getValue() == 0x27) {
+                                session.sendMessageToFriend(qq, UserCommandUtil.getForwardMessage(
                                         Bot.getInstances().get(0),
-                                        Bot.getInstances().get(0).getFriendOrFail(id),
+                                        Bot.getInstances().get(0).getFriendOrFail(qq),
                                         commandMaps
                                 ));
-                            } catch (Exception ignored) {}
+                            }
+
+                            if (packet.getId().getValue() == 0x29) {
+                                session.sendMessageToGroup(groupId, UserCommandUtil.getForwardMessage(
+                                        Bot.getInstances().get(0),
+                                        Bot.getInstances().get(0).getGroupOrFail(groupId),
+                                        commandMaps
+                                ));
+                            }
 
                             break;
                         }
@@ -644,7 +684,7 @@ public class MinecraftConnectionThread extends Thread {
 
                             VarIntString msg = new VarIntString(packet.getData());
 
-                            session.sendMessageToGroup(groupId, msg.getContent());
+                            session.sendMessageToGroup(groupId, new PlainText(msg.getContent()));
 
                             break;
                         }
@@ -704,11 +744,11 @@ public class MinecraftConnectionThread extends Thread {
         logInfo("总线程", "已撤除该连接");
 
 //        发送断开连接消息
-        session.sendMessageToAllGroups("有Minecraft服务端断开会话！\n会话名：" +
+        session.sendMessageToAllGroups(new PlainText("有Minecraft服务端断开会话！\n会话名：" +
                 session.getName() + "\n服务端名称：" +
                 serverName.getContent() + "\n地址：" +
                 serverAddress + "\n原因：" +
-                disconnectReason + "\n时间：" + new Date());
+                disconnectReason + "\n时间：" + new Date()));
     }
 
     public void addSendQueue(Packet packet) {
@@ -729,6 +769,10 @@ public class MinecraftConnectionThread extends Thread {
 
     public VarIntString[] getOnlinePlayersCommands() {
         return onlinePlayersCommands;
+    }
+
+    public VarIntString[] getGetUserCommandsCommands() {
+        return getUserCommandsCommands;
     }
 
     public VarIntString getRconCommandPrefix() {
@@ -758,7 +802,8 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString rconCommandPrefix,
             VarIntString rconCommandResultFormat,
             VarIntString userCommandPrefix,
-            VarIntString userBindPrefix
+            VarIntString userBindPrefix,
+            VarIntString[] getUserCommandsCommands
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -775,6 +820,7 @@ public class MinecraftConnectionThread extends Thread {
         this.rconCommandResultFormat = rconCommandResultFormat;
         this.userCommandPrefix = userCommandPrefix;
         this.userBindPrefix = userBindPrefix;
+        this.getUserCommandsCommands = getUserCommandsCommands;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());

@@ -75,6 +75,15 @@ public class ConnectionPacketReceiveUtil {
         VarIntString userBindPrefix = new VarIntString(Arrays.copyOfRange(data, index, data.length));
         index += userBindPrefix.getBytesLength(charset);
 
+        VarInt getUserCommandsCommandsCount = new VarInt(Arrays.copyOfRange(data, index, data.length));
+        index += getUserCommandsCommandsCount.getBytesLength();
+
+        VarIntString[] getUserCommandsCommands = new VarIntString[getUserCommandsCommandsCount.getValue()];
+        for (int i = 0; i < getUserCommandsCommandsCount.getValue(); i++) {
+            getUserCommandsCommands[i] = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+            index += getUserCommandsCommands[i].getBytesLength();
+        }
+
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
         }
@@ -94,7 +103,8 @@ public class ConnectionPacketReceiveUtil {
                 rconCommandPrefix,
                 rconCommandResultFormat,
                 userCommandPrefix,
-                userBindPrefix
+                userBindPrefix,
+                getUserCommandsCommands
         );
     }
 
