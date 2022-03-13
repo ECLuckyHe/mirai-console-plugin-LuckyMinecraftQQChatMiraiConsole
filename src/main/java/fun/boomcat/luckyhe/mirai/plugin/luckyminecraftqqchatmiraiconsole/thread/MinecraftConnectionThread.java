@@ -8,10 +8,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
+import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -605,7 +603,8 @@ public class MinecraftConnectionThread extends Thread {
                             VarInt commandLength = new VarInt(Arrays.copyOfRange(data, i, data.length));
                             i += commandLength.getBytesLength();
 
-                            StringBuilder sb = new StringBuilder("[异步消息] 用户指令列表：\n");
+                            List<Map<String, String>> commandMaps = new ArrayList<>();
+
                             for (int j = 0; j < commandLength.getValue(); j++) {
                                 VarIntString name = new VarIntString(Arrays.copyOfRange(data, i, data.length));
                                 i += name.getBytesLength();
@@ -614,13 +613,21 @@ public class MinecraftConnectionThread extends Thread {
                                 VarIntString mapping = new VarIntString(Arrays.copyOfRange(data, i, data.length));
                                 i += mapping.getBytesLength();
 
-                                sb.append("指令名：").append(name.getContent()).append("\n");
-                                sb.append("用户指令：").append(command.getContent()).append("\n");
-                                sb.append("实际指令：").append(mapping.getContent()).append("\n");
-                                sb.append("\n");
+                                Map<String, String> newMap = new HashMap<>();
+                                newMap.put("name", name.getContent());
+                                newMap.put("command", command.getContent());
+                                newMap.put("mapping", mapping.getContent());
+
+                                commandMaps.add(newMap);
                             }
 
-                            session.sendMessageToFriend(id, sb.toString());
+                            try {
+                                Bot.getInstances().get(0).getFriend(id).sendMessage(UserCommandUtil.getForwardMessage(
+                                        Bot.getInstances().get(0),
+                                        Bot.getInstances().get(0).getFriendOrFail(id),
+                                        commandMaps
+                                ));
+                            } catch (Exception ignored) {}
 
                             break;
                         }

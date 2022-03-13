@@ -1,7 +1,14 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
+import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.Contact;
+import net.mamoe.mirai.message.data.ForwardMessage;
+import net.mamoe.mirai.message.data.ForwardMessageBuilder;
+import net.mamoe.mirai.message.data.PlainText;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class UserCommandUtil {
     public static List<String> splitCommand(String command) {
@@ -38,5 +45,40 @@ public class UserCommandUtil {
             }
         }
         return res;
+    }
+
+    public static ForwardMessage getForwardMessage(Bot bot, Contact contact, List<Map<String, String>> commandMaps) {
+        List<StringBuilder> sbs = new ArrayList<>();
+        int count = 0;
+        int PER_MSG_COUNT = 30;
+        int totalPages = commandMaps.size() % PER_MSG_COUNT == 0 ?
+                commandMaps.size() / PER_MSG_COUNT :
+                commandMaps.size() / PER_MSG_COUNT + 1;
+        for (Map<String, String> map : commandMaps) {
+            int page = count / PER_MSG_COUNT;
+            StringBuilder stringBuilder;
+
+            try {
+                stringBuilder = sbs.get(page);
+            } catch (IndexOutOfBoundsException e) {
+                stringBuilder = new StringBuilder("第" + (page + 1) + "页，共" + totalPages + "页\n" +
+                        "==========\n");
+                sbs.add(stringBuilder);
+            }
+
+            stringBuilder.append("指令名：").append(map.get("name")).append("\n");
+            stringBuilder.append("用户指令：").append(map.get("command")).append("\n");
+            stringBuilder.append("实际指令：").append(map.get("mapping")).append("\n");
+            stringBuilder.append("\n");
+
+            count += 1;
+        }
+
+        ForwardMessageBuilder fmb = new ForwardMessageBuilder(contact);
+        for (StringBuilder sb : sbs) {
+            fmb.add(bot.getId(), bot.getNick(), new PlainText(sb.toString()));
+        }
+
+        return fmb.build();
     }
 }
