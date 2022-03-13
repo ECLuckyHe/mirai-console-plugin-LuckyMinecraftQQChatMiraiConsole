@@ -8,8 +8,10 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
-import net.mamoe.mirai.Bot;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -50,16 +52,16 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> onlinePlayersCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> rconCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
-//    添加用户指令的队列
+    //    添加用户指令的队列
     private final Queue<Long> addUserCommandQueue = new ConcurrentLinkedQueue<>();
-//    删除用户指令的队列
+    //    删除用户指令的队列
     private final Queue<Long> delUserCommandQueue = new ConcurrentLinkedQueue<>();
-//    获取用户指令（mcchat指令）队列
+    //    获取用户指令（mcchat指令）队列
     private final Queue<Long> getMcChatUserCommandsQueue = new ConcurrentLinkedQueue<>();
-//    绑定qq和mcid队列（群号）
+    //    绑定qq和mcid队列（群号）
     private final Queue<Long> userBindQueue = new ConcurrentLinkedQueue<>();
-//    发送用户指令队列（群号）
-    private final Queue<Long> userCommandGroupQueue =  new ConcurrentLinkedQueue<>();
+    //    发送用户指令队列（群号）
+    private final Queue<Long> userCommandGroupQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -142,7 +144,7 @@ public class MinecraftConnectionThread extends Thread {
         VarLong senderIdLong = new VarLong(senderId);
         VarIntString nameString = new VarIntString(name);
         VarIntString userCommandString = new VarIntString(userCommand);
-        VarIntString mapCommandString  =new VarIntString(mapCommand);
+        VarIntString mapCommandString = new VarIntString(mapCommand);
 
         addSendQueue(new Packet(
                 new VarInt(packetId.getBytesLength() +
@@ -199,7 +201,7 @@ public class MinecraftConnectionThread extends Thread {
         addSendQueue(new Packet(
                 new VarInt(packetId.getBytesLength()),
                 packetId,
-                new byte[] {}
+                new byte[]{}
         ));
     }
 
@@ -542,11 +544,14 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            try {
-                                Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(commandResult.getContent());
-                            } catch (Exception e) {
-//                                e.printStackTrace();
-                            }
+                            session.sendMessageToGroup(groupId, ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    rconCommandResultFormat.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.RESULT,
+                                    commandResult.getContent()
+                            ));
+
 
                             break;
                         }
@@ -563,11 +568,7 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            try {
-                                Bot.getInstances().get(0).getFriendOrFail(id).sendMessage("[异步消息] " + msg.getContent());
-                            } catch (Exception ignored) {
-
-                            }
+                            session.sendMessageToFriend(id, "[异步消息] " + msg.getContent());
 
                             break;
                         }
@@ -584,11 +585,7 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            try {
-                                Bot.getInstances().get(0).getFriendOrFail(id).sendMessage("[异步消息] " + msg.getContent());
-                            } catch (Exception ignored) {
-
-                            }
+                            session.sendMessageToFriend(id, "[异步消息] " + msg.getContent());
 
                             break;
                         }
@@ -623,11 +620,7 @@ public class MinecraftConnectionThread extends Thread {
                                 sb.append("\n");
                             }
 
-                            try {
-                                MessageUtil.pageSender(Bot.getInstances().get(0).getFriendOrFail(id), sb.toString());
-                            } catch (Exception ignored) {
-
-                            }
+                            session.sendMessageToFriend(id, sb.toString());
 
                             break;
                         }
@@ -644,11 +637,7 @@ public class MinecraftConnectionThread extends Thread {
 
                             VarIntString msg = new VarIntString(packet.getData());
 
-                            try {
-                                Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(msg.getContent());
-                            } catch (Exception ignored) {
-
-                            }
+                            session.sendMessageToGroup(groupId, msg.getContent());
 
                             break;
                         }

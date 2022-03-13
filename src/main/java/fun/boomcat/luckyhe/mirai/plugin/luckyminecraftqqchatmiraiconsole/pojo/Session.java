@@ -328,6 +328,12 @@ public class Session {
         }
     }
 
+    public void sendMessageToFriend(long friendId, String message) {
+        try {
+            Bot.getInstances().get(0).getFriendOrFail(friendId).sendMessage(message);
+        } catch (Exception e) {}
+    }
+
     public void sendMessageToAllGroups(String message) {
         for (SessionGroup group : groups) {
             try {
