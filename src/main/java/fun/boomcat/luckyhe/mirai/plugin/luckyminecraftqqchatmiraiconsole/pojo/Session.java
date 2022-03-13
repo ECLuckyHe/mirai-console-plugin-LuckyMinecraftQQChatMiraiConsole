@@ -155,13 +155,13 @@ public class Session {
 //                continue;
 //            }
 
-            if (message.contentToString().startsWith(opCommandPrefix)) {
+            if (message.contentToString().startsWith(opCommandPrefix) && !message.contentToString().equals(opCommandPrefix)) {
                 thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(opCommandPrefix.length()));
             }
-            if (message.contentToString().startsWith(userCommandPrefix)) {
+            if (message.contentToString().startsWith(userCommandPrefix) && !message.contentToString().equals(userCommandPrefix)) {
                 thread.sendUserCommandPacket(senderId, groupId, message.contentToString().substring(userCommandPrefix.length()));
             }
-            if (message.contentToString().startsWith(userBindPrefix)) {
+            if (message.contentToString().startsWith(userBindPrefix) && !message.contentToString().equals(userBindPrefix)) {
                 thread.sendUserBindPacket(groupId, senderId, message.contentToString().substring(userBindPrefix.length()));
             }
         }
