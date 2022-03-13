@@ -11,6 +11,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.M
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.QqFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.message.data.Message;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
 
@@ -118,10 +119,10 @@ public class Session {
             return;
         }
 
-//        发送获取在线玩家信息数据
+//        发送获取数据
         for (MinecraftConnectionThread thread : minecraftThreads) {
-//            群号不在
 
+//            获取在线玩家部分
             VarIntString[] onlinePlayersCommands = thread.getOnlinePlayersCommands();
             for (VarIntString onlinePlayersCommand : onlinePlayersCommands) {
                 if (ReplacePlaceholderUtil.replacePlaceholderWithString(
@@ -130,6 +131,18 @@ public class Session {
                         thread.getServerName().getContent()
                 ).equals(message.contentToString())) {
                     thread.sendGetOnlinePlayersPacket(groupId);
+                }
+            }
+
+//            获取所有用户指令部分
+            VarIntString[] getUserCommandsCommands = thread.getGetUserCommandsCommands();
+            for (VarIntString getUserCommands : getUserCommandsCommands) {
+                if (ReplacePlaceholderUtil.replacePlaceholderWithString(
+                        getUserCommands.getContent(),
+                        MinecraftFormatPlaceholder.SERVER_NAME,
+                        thread.getServerName().getContent()
+                ).equals(message.contentToString())) {
+                    thread.sendGetUserCommands(groupId);
                 }
             }
 
@@ -155,13 +168,13 @@ public class Session {
 //                continue;
 //            }
 
-            if (message.contentToString().startsWith(opCommandPrefix)) {
+            if (message.contentToString().startsWith(opCommandPrefix) && !message.contentToString().equals(opCommandPrefix)) {
                 thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(opCommandPrefix.length()));
             }
-            if (message.contentToString().startsWith(userCommandPrefix)) {
+            if (message.contentToString().startsWith(userCommandPrefix) && !message.contentToString().equals(userCommandPrefix)) {
                 thread.sendUserCommandPacket(senderId, groupId, message.contentToString().substring(userCommandPrefix.length()));
             }
-            if (message.contentToString().startsWith(userBindPrefix)) {
+            if (message.contentToString().startsWith(userBindPrefix) && !message.contentToString().equals(userBindPrefix)) {
                 thread.sendUserBindPacket(groupId, senderId, message.contentToString().substring(userBindPrefix.length()));
             }
         }
@@ -320,7 +333,7 @@ public class Session {
         return null;
     }
 
-    public void sendMessageToGroup(long groupId, String message) {
+    public void sendMessageToGroup(long groupId, Message message) {
         try {
             Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(message);
         } catch (Exception e) {
@@ -328,7 +341,13 @@ public class Session {
         }
     }
 
-    public void sendMessageToAllGroups(String message) {
+    public void sendMessageToFriend(long friendId, Message message) {
+        try {
+            Bot.getInstances().get(0).getFriendOrFail(friendId).sendMessage(message);
+        } catch (Exception e) {}
+    }
+
+    public void sendMessageToAllGroups(Message message) {
         for (SessionGroup group : groups) {
             try {
                 Bot.getInstances().get(0).getGroupOrFail(group.getId()).sendMessage(message);
