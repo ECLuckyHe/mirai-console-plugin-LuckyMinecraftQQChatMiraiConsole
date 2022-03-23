@@ -657,7 +657,8 @@ public class MinecraftConnectionThread extends Thread {
                                 session.sendMessageToFriend(qq, UserCommandUtil.getForwardMessage(
                                         Bot.getInstances().get(0),
                                         Bot.getInstances().get(0).getFriendOrFail(qq),
-                                        commandMaps
+                                        commandMaps,
+                                        null
                                 ));
                             }
 
@@ -665,7 +666,8 @@ public class MinecraftConnectionThread extends Thread {
                                 session.sendMessageToGroup(groupId, UserCommandUtil.getForwardMessage(
                                         Bot.getInstances().get(0),
                                         Bot.getInstances().get(0).getGroupOrFail(groupId),
-                                        commandMaps
+                                        commandMaps,
+                                        this
                                 ));
                             }
 

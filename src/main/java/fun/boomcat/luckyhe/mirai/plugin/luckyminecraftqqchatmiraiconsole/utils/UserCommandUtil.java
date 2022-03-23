@@ -1,5 +1,6 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import net.mamoe.mirai.Bot;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.message.data.ForwardMessage;
@@ -47,7 +48,8 @@ public class UserCommandUtil {
         return res;
     }
 
-    public static ForwardMessage getForwardMessage(Bot bot, Contact contact, List<Map<String, String>> commandMaps) {
+    public static ForwardMessage getForwardMessage(Bot bot, Contact contact, List<Map<String, String>> commandMaps, MinecraftConnectionThread thread) {
+//        当为普通用户获取用户指令的时候，传入thread的值为null
         List<StringBuilder> sbs = new ArrayList<>();
         int count = 0;
         int PER_MSG_COUNT = 30;
@@ -75,6 +77,14 @@ public class UserCommandUtil {
         }
 
         ForwardMessageBuilder fmb = new ForwardMessageBuilder(contact);
+        if (thread != null) {
+            fmb.add(bot.getId(), bot.getNick(), new PlainText("服务端名称：" + thread.getServerName().getContent() + "\n" +
+                    "指令前缀：" + ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getUserCommandPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            )));
+        }
         for (StringBuilder sb : sbs) {
             fmb.add(bot.getId(), bot.getNick(), new PlainText(sb.toString()));
         }
