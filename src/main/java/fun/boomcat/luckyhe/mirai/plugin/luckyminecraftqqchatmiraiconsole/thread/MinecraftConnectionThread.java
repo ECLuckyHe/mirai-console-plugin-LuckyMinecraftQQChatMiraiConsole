@@ -399,26 +399,26 @@ public class MinecraftConnectionThread extends Thread {
 //                                玩家加入游戏消息包接收
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             joinFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
                                             MinecraftFormatPlaceholder.PLAYER_NAME,
                                             new VarIntString(packet.getData()).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x11:
 //                                玩家离开游戏时消息包接收
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             quitFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
                                             MinecraftFormatPlaceholder.PLAYER_NAME,
                                             new VarIntString(packet.getData()).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x12:
@@ -426,7 +426,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn12 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             msgFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -438,7 +438,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn12.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x13:
@@ -446,7 +446,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn13 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             deathFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -458,7 +458,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn13.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x14:
@@ -466,7 +466,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn14 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             kickFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -478,7 +478,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn14.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x21:
@@ -530,19 +530,19 @@ public class MinecraftConnectionThread extends Thread {
                             Long commandGroupId = rconCommandSendGroupQueue.poll();
                             if (commandGroupId == null) {
 //                                    没有人发送指令但却收到了指令回复
-                                logError(threadName, "没有人发送指令但却收到了指令回复包，开始关闭Socket");
+                                logError(threadName, "没有人发送管理员指令但却收到了指令回复包，开始关闭Socket");
                                 isConnected = false;
                                 socket.close();
                                 break;
                             }
 
-                            session.sendMessageToGroup(commandGroupId, new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                            session.sendMessageToGroup(commandGroupId, new PlainText(MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                     rconCommandResultFormat.getContent(),
                                     MinecraftFormatPlaceholder.SERVER_NAME,
                                     serverName.getContent(),
                                     MinecraftFormatPlaceholder.RESULT,
                                     commandRes.getContent()
-                            ))));
+                            )))));
                             break;
 
                         case 0x24: {
@@ -557,13 +557,13 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            session.sendMessageToGroup(groupId, new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                            session.sendMessageToGroup(groupId, new PlainText(MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                     rconCommandResultFormat.getContent(),
                                     MinecraftFormatPlaceholder.SERVER_NAME,
                                     serverName.getContent(),
                                     MinecraftFormatPlaceholder.RESULT,
                                     commandResult.getContent()
-                            ))));
+                            )))));
 
 
                             break;
@@ -612,7 +612,7 @@ public class MinecraftConnectionThread extends Thread {
 //                                mcchat获取
                                 qq = getMcChatUserCommandsQueue.poll();
                                 if (qq == null) {
-                                    logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
+                                    logError(threadName, "没有人发送获取用户指令（mcchat指令）列表包但是却收到了，开始关闭Socket");
                                     isConnected = false;
                                     socket.close();
                                     break;
@@ -623,7 +623,7 @@ public class MinecraftConnectionThread extends Thread {
 //                                普通用户获取
                                 groupId = getUserCommandsGroupQueue.poll();
                                 if (groupId == null) {
-                                    logError(threadName, "没有人发送获取用户指令列表包但是却收到了，开始关闭Socket");
+                                    logError(threadName, "没有人发送获取用户指令（普通用户）列表包但是却收到了，开始关闭Socket");
                                     isConnected = false;
                                     socket.close();
                                     break;
