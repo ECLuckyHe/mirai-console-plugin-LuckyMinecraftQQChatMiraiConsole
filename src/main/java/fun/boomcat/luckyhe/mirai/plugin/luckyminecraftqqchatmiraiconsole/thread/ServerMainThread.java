@@ -7,15 +7,15 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketSendUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
-import net.mamoe.mirai.message.data.PlainText;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Date;
 
 public class ServerMainThread extends Thread {
     private final MiraiLogger logger;
@@ -49,8 +49,17 @@ public class ServerMainThread extends Thread {
             return;
         }
 
+        String ip;
         try {
-            serverSocket = new ServerSocket(port);
+            ip = ConfigOperation.getIp();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            logger.error("获取配置文件失败，请尝试重启程序");
+            return;
+        }
+
+        try {
+            serverSocket = new ServerSocket(port, 5, InetAddress.getByName(ip));
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Server Socket开启失败，请尝试重启程序");
@@ -252,12 +261,6 @@ public class ServerMainThread extends Thread {
             minecraftConnectionThread.setSession(session);
             minecraftConnectionThread.setDaemon(false);
             minecraftConnectionThread.start();
-
-//            向群内公告此连接
-            session.sendMessageToAllGroups(new PlainText("有Minecraft服务端接入会话！\n会话名：" + session.getName() + "\n" +
-                    "服务端名称：" + minecraftConnectionThread.getServerName().getContent() + "\n" +
-                    "地址：" + minecraftConnectionThread.getServerAddress() + "\n" +
-                    "时间：" + new Date()));
 
 //            添加到同一会话的线程列表和传入会话对象
             session.addMinecraftThread(minecraftConnectionThread);
