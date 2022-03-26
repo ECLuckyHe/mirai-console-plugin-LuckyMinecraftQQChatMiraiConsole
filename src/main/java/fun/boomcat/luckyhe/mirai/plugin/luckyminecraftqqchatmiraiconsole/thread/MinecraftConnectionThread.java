@@ -220,6 +220,7 @@ public class MinecraftConnectionThread extends Thread {
 
     @Override
     public void run() {
+        List<Object> pingRight = new ArrayList<>();
 //        发送线程，负责从队列取数据包发送
 //        发送前先确认，若为关闭包，则发送后关闭socket
         AsyncCaller.run(() -> {
@@ -298,11 +299,16 @@ public class MinecraftConnectionThread extends Thread {
             String threadName = "心跳";
             logInfo(threadName, "线程启动");
             Random random = new Random();
+//            该标记用于表示是否为第一次心跳包，主要是为了进入循环后马上发送一次心跳包
+            boolean theFirstTime = true;
             while (isConnected) {
                 try {
-                    for (int i = 0; i < ConfigOperation.getHeartbeat() && isConnected; i++) {
-                        Thread.sleep(1000L);
-                    }
+                        for (int i = 0; (!theFirstTime) && i < ConfigOperation.getHeartbeat() && isConnected; i++) {
+                            Thread.sleep(1000L);
+                        }
+                        if (theFirstTime) {
+                            theFirstTime = false;
+                        }
                 } catch (Exception e) {
                     isConnected = false;
 //                    e.printStackTrace();
@@ -360,6 +366,9 @@ public class MinecraftConnectionThread extends Thread {
         AsyncCaller.run(() -> {
             String threadName = "接收处理";
             logInfo(threadName, "线程启动");
+//            是否是第一次接收到心跳包的标记
+            boolean isFirstTime = true;
+            cycle:
             while (isConnected) {
                 try {
                     Packet packet = receiveQueue.take();
@@ -379,11 +388,22 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            if (!(ping.getValue() == sent)) {
+                            if (!(ping.getValue() == sent + ConfigOperation.getHeartbeat())) {
 //                                    如果不匹配则断开连接
                                 logError(threadName, "心跳包回应错误，开始关闭Socket");
                                 isConnected = false;
                                 socket.close();
+                                break cycle;
+                            }
+
+                            if (isFirstTime) {
+                                //            向群内公告此连接
+                                session.sendMessageToAllGroups(new PlainText("有Minecraft服务端接入会话！\n会话名：" + session.getName() + "\n" +
+                                        "服务端名称：" + serverName.getContent() + "\n" +
+                                        "地址：" + serverAddress + "\n" +
+                                        "时间：" + new Date()));
+                                isFirstTime = false;
+                                pingRight.add(new Object());
                             }
 
                             break;
@@ -746,11 +766,13 @@ public class MinecraftConnectionThread extends Thread {
         logInfo("总线程", "已撤除该连接");
 
 //        发送断开连接消息
-        session.sendMessageToAllGroups(new PlainText("有Minecraft服务端断开会话！\n会话名：" +
-                session.getName() + "\n服务端名称：" +
-                serverName.getContent() + "\n地址：" +
-                serverAddress + "\n原因：" +
-                disconnectReason + "\n时间：" + new Date()));
+        if (pingRight.size() == 1) {
+            session.sendMessageToAllGroups(new PlainText("有Minecraft服务端断开会话！\n会话名：" +
+                    session.getName() + "\n服务端名称：" +
+                    serverName.getContent() + "\n地址：" +
+                    serverAddress + "\n原因：" +
+                    disconnectReason + "\n时间：" + new Date()));
+        }
     }
 
     public void addSendQueue(Packet packet) {
