@@ -46,7 +46,7 @@ public class Session {
         return false;
     }
 
-    public void sendClosePacketToMinecraftThread(String info) {
+    public void sendClosePacketToMinecraftThreads(String info) {
         for (MinecraftConnectionThread thread : minecraftThreads) {
             thread.sendClosePacket(info);
         }
