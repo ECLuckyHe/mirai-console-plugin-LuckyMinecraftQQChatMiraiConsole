@@ -338,11 +338,11 @@ public class MinecraftConnectionThread extends Thread {
                     }
                 }
 
-//                生成一个不为0的ping数
+//                生成一个不为0和1的ping数
                 long pingNumber;
                 do {
                     pingNumber = random.nextLong();
-                } while (pingNumber == 0);
+                } while (pingNumber == 0 || pingNumber == 1);
 
                 pingQueue.add(pingNumber);
 
@@ -404,6 +404,14 @@ public class MinecraftConnectionThread extends Thread {
                                         "时间：" + new Date()));
                                 isFirstTime = false;
                                 pingRight.add(new Object());
+
+                                VarInt confirmPacketId = new VarInt(0x20);
+                                VarLong value = new VarLong(1);
+                                sendQueue.add(new Packet(
+                                        new VarInt(confirmPacketId.getBytesLength() + value.getBytesLength()),
+                                        confirmPacketId,
+                                        value.getBytes()
+                                ));
                             }
 
                             break;
