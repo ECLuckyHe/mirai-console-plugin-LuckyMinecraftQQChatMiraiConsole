@@ -132,7 +132,12 @@ public class MinecraftConnectionThread extends Thread {
                 ));
             } else if (singleMessage instanceof AtAll) {
                 messageBytes.add(ByteUtil.byteMergeAll(new byte[] {0x02}));
-            } else if (singleMessage instanceof Image) {
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[动画表情]")) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x05},
+                        new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()
+                ));
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[图片]")) {
                 messageBytes.add(ByteUtil.byteMergeAll(
                         new byte[] {0x03},
                         new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()

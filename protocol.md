@@ -119,6 +119,13 @@ Client应该连接后主动发送此数据包。
 | fromId              | `VarLong`      | 被回复对象QQ   |
 | oldMessagePlainText | `VarIntString` | 被回复的原消息内容 |
 
+类型: **动画表情**  
+类型ID: **0x05**
+
+| 项目     | 类型             | 描述       |
+|--------|----------------|----------|
+| picUrl | `VarIntString` | 动画表情链接地址 |
+
 <br>
 
 消息内容，此消息将原封不动发至游戏中。  
