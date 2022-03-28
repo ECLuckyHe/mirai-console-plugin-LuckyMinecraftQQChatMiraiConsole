@@ -2,10 +2,8 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo;
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarInt;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarIntString;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarLong;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.QqFormatPlaceholder;
@@ -180,7 +178,7 @@ public class Session {
         }
 
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
-        sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message.contentToString());
+        sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
     }
 
     public void sendAnnouncementToMinecraftConnection(long senderId, String senderNickname, String serverName, String announcement) throws MinecraftThreadNotFoundException {
@@ -211,7 +209,7 @@ public class Session {
             long senderId,
             String senderNickname,
             String senderGroupNickname,
-            String message
+            MessageChain message
     ) {
 //        群->mc
 //        转成对应类型
@@ -220,36 +218,18 @@ public class Session {
             return;
         }
 
-        VarInt packetId = new VarInt(0x10);
-        VarLong gi = new VarLong(groupId);
-        VarIntString gn = new VarIntString(groupName);
-        VarIntString gnm = new VarIntString(groupNickname);
-        VarLong si = new VarLong(senderId);
-        VarIntString snm = new VarIntString(senderNickname);
-        VarIntString sgnm = new VarIntString(senderGroupNickname.length() == 0 ? senderNickname : senderGroupNickname);
-        VarIntString msg = new VarIntString(message);
-
         synchronized (minecraftThreads) {
             for (MinecraftConnectionThread thread : minecraftThreads) {
 //                添加进发送队列中
-                thread.addSendQueue(new Packet(
-                        new VarInt(
-                                packetId.getBytesLength() + gi.getBytesLength() +
-                                        gn.getBytesLength() + gnm.getBytesLength() +
-                                        si.getBytesLength() + snm.getBytesLength() +
-                                        sgnm.getBytesLength() + msg.getBytesLength()
-                        ),
-                        packetId,
-                        ByteUtil.byteMergeAll(
-                                gi.getBytes(),
-                                gn.getBytes(),
-                                gnm.getBytes(),
-                                si.getBytes(),
-                                snm.getBytes(),
-                                sgnm.getBytes(),
-                                msg.getBytes()
-                        )
-                ));
+                thread.sendMessage(
+                        groupId,
+                        groupName,
+                        groupNickname,
+                        senderId,
+                        senderNickname,
+                        senderGroupNickname,
+                        message
+                );
             }
         }
     }
