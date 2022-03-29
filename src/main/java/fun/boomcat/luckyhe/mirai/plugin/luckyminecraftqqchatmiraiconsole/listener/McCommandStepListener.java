@@ -1006,6 +1006,13 @@ public class McCommandStepListener implements ListenerHost {
             return;
         }
 
+        if ("ok".equalsIgnoreCase(content)) {
+            subject.sendMessage("不能使用ok作为指令名");
+            subject.sendMessage(userCommandAdd.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
         userCommandAdd.setName(content);
 
         subject.sendMessage(userCommandAdd.toString());
