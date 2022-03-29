@@ -215,6 +215,7 @@ public class McChatCommandUtil {
                 "<指令名>    需要删除的用户指令名（再次发送为反选）\n" +
 //                此处使用list查看指令列表，因此在添加指令名时应拒绝起名为list
                 "list    查看当前存在的用户指令\n" +
+//                ok同样应该拒绝使用
                 "ok    确认删除\n" +
                 "exit    退出删除用户指令\n" +
                 "quit    退出指令";
