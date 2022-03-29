@@ -14,7 +14,8 @@
 + 插件配置文件自动生成于目录`./config/luckyhe.luckyminecraftqqchatmiraiconsole/`
 
 #### 使用说明
-+ [`v1.1.x`（最新）](./docs/1.1.x.md)
++ [`v1.2.x`](./docs/1.2.x.md)
++ [`v1.1.x`](./docs/1.1.x.md)
 + `v1.0` 性能非常差，不提供说明文档且不建议使用
 
 ### 仓库地址
