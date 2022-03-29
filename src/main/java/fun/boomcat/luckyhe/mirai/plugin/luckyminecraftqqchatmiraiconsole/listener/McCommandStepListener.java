@@ -1059,6 +1059,7 @@ public class McCommandStepListener implements ListenerHost {
         uca.setMapping(content);
         List<String> mappingArgList = uca.getMappingArgList();
 
+//        检查未使用的参数
         for (String s : mappingArgList) {
             commandArgList.removeIf(o -> o.equals(s));
         }
@@ -1066,6 +1067,27 @@ public class McCommandStepListener implements ListenerHost {
         if (commandArgList.size() != 0) {
             StringBuilder res = new StringBuilder("以下参数未使用：\n");
             for (String s : commandArgList) {
+                res.append(s).append("\n");
+            }
+
+            uca.setMapping(null);
+            subject.sendMessage(res.toString());
+            subject.sendMessage(uca.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        检查未指定的参数
+        commandArgList = uca.getCommandArgList();
+        mappingArgList = uca.getMappingArgList();
+
+        for (String s : commandArgList) {
+            mappingArgList.removeIf(o -> o.equals(s));
+        }
+
+        if (mappingArgList.size() != 0) {
+            StringBuilder res = new StringBuilder("以下参数未指定：\n");
+            for (String s : mappingArgList) {
                 res.append(s).append("\n");
             }
 
