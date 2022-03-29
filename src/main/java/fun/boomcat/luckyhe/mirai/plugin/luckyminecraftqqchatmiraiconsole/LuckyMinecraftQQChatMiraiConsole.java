@@ -4,7 +4,6 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.OpMcChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.SessionDataNotExistException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.McCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
@@ -23,7 +22,6 @@ import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescriptionBuilder;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;

@@ -2,7 +2,6 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.comman
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandUtil;
 import kotlin.Unit;
 import kotlin.coroutines.Continuation;
 import net.mamoe.mirai.console.command.CommandOwner;
@@ -14,7 +13,6 @@ import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.message.data.MessageChain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.kotlin.cli.common.Usage;
 
 public class OpMcChatCommand extends RawCommand {
     public OpMcChatCommand(@NotNull CommandOwner owner, @NotNull String primaryName, @NotNull String[] secondaryNames, @NotNull String usage, @NotNull String description, @NotNull Permission parentPermission, boolean prefixOptional) {
