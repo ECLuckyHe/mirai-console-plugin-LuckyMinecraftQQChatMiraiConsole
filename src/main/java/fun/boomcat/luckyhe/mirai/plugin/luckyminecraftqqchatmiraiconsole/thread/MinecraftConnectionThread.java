@@ -10,7 +10,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
 import net.mamoe.mirai.Bot;
-import net.mamoe.mirai.message.data.PlainText;
+import net.mamoe.mirai.message.data.*;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
@@ -89,6 +89,95 @@ public class MinecraftConnectionThread extends Thread {
         VarInt packetId = new VarInt(0xF0);
         VarIntString string = new VarIntString(info);
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength() + string.getBytesLength()), packetId, string.getBytes()));
+    }
+
+    public void sendMessage(
+            long groupId,
+            String groupName,
+            String groupNickname,
+            long senderId,
+            String senderNickname,
+            String senderGroupNickname,
+            MessageChain message
+    ) {
+        VarInt packetId = new VarInt(0x10);
+        VarLong gi = new VarLong(groupId);
+        VarIntString gn = new VarIntString(groupName);
+        VarIntString gnm = new VarIntString(groupNickname);
+        VarLong si = new VarLong(senderId);
+        VarIntString snm = new VarIntString(senderNickname);
+        VarIntString sgnm = new VarIntString(senderGroupNickname.length() == 0 ? senderNickname : senderGroupNickname);
+
+        int len = packetId.getBytesLength() + gi.getBytesLength() +
+                gn.getBytesLength() + gnm.getBytesLength() +
+                si.getBytesLength() + snm.getBytesLength() +
+                sgnm.getBytesLength();
+
+        byte[] data = ByteUtil.byteMergeAll(
+                gi.getBytes(),
+                gn.getBytes(),
+                gnm.getBytes(),
+                si.getBytes(),
+                snm.getBytes(),
+                sgnm.getBytes()
+        );
+
+//        处理消息
+        List<byte[]> messageBytes = new ArrayList<>();
+        for (SingleMessage singleMessage : message) {
+            if (singleMessage instanceof At) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x01},
+                        new VarLong(((At) singleMessage).getTarget()).getBytes()
+                ));
+            } else if (singleMessage instanceof AtAll) {
+                messageBytes.add(ByteUtil.byteMergeAll(new byte[] {0x02}));
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[动画表情]")) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x05},
+                        new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()
+                ));
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[图片]")) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x03},
+                        new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()
+                ));
+            } else if (singleMessage instanceof QuoteReply) {
+                QuoteReply quoteReply = (QuoteReply) singleMessage;
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x04},
+                        new VarLong(quoteReply.getSource().getFromId()).getBytes(),
+                        new VarIntString(quoteReply.getSource().getOriginalMessage().contentToString()).getBytes()
+                ));
+            } else {
+//                其他，长度为0则不发
+                String s = singleMessage.contentToString();
+                if (s.length() == 0) {
+                    continue;
+                }
+
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x00},
+                        new VarIntString(s).getBytes()
+                ));
+            }
+        }
+
+//        组装消息
+        VarInt messageBytesLength = new VarInt(messageBytes.size());
+        len += messageBytesLength.getBytesLength();
+        data = ByteUtil.byteMergeAll(data, messageBytesLength.getBytes());
+
+        for (byte[] bytes : messageBytes) {
+            len += bytes.length;
+            data = ByteUtil.byteMergeAll(data, bytes);
+        }
+
+        addSendQueue(new Packet(
+                new VarInt(len),
+                packetId,
+                data
+        ));
     }
 
     public synchronized void sendGetOnlinePlayersPacket(long groupId) {
@@ -214,7 +303,7 @@ public class MinecraftConnectionThread extends Thread {
         addSendQueue(new Packet(
                 new VarInt(packetId.getBytesLength()),
                 packetId,
-                new byte[] {}
+                new byte[]{}
         ));
     }
 
@@ -303,12 +392,12 @@ public class MinecraftConnectionThread extends Thread {
             boolean theFirstTime = true;
             while (isConnected) {
                 try {
-                        for (int i = 0; (!theFirstTime) && i < ConfigOperation.getHeartbeat() && isConnected; i++) {
-                            Thread.sleep(1000L);
-                        }
-                        if (theFirstTime) {
-                            theFirstTime = false;
-                        }
+                    for (int i = 0; (!theFirstTime) && i < ConfigOperation.getHeartbeat() && isConnected; i++) {
+                        Thread.sleep(1000L);
+                    }
+                    if (theFirstTime) {
+                        theFirstTime = false;
+                    }
                 } catch (Exception e) {
                     isConnected = false;
 //                    e.printStackTrace();

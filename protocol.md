@@ -63,15 +63,68 @@ Client应该连接后主动发送此数据包。
 消息内容，当群内有消息时发送。  
 包ID: **0x10**
 
-| 项目                  | 类型             | 描述         |
-|---------------------|----------------|------------|
-| groupId             | `VarLong`      | 群号         |
-| groupName           | `VarIntString` | 群名         |
-| groupNickname       | `VarIntString` | 群昵称（bot指定） |
-| senderId            | `VarLong`      | 发送者qq      |
-| senderNickname      | `VarIntString` | 发送者昵称      |
-| senderGroupNickname | `VarIntString` | 发送者在群内的昵称  |
-| message             | `VarIntString` | 消息内容       |
+| 项目                  | 类型                | 描述         |
+|---------------------|-------------------|------------|
+| groupId             | `VarLong`         | 群号         |
+| groupName           | `VarIntString`    | 群名         |
+| groupNickname       | `VarIntString`    | 群昵称（bot指定） |
+| senderId            | `VarLong`         | 发送者qq      |
+| senderNickname      | `VarIntString`    | 发送者昵称      |
+| senderGroupNickname | `VarIntString`    | 发送者在群内的昵称  |
+| messageObjectLength | `VarInt`          | 消息对象长度     |
+| message             | `MessageObject[]` | 一系列的消息对象   |
+
+
+其中消息对象定义格式如下：
+
+| 项目            | 类型       | 描述            |
+|---------------|----------|---------------|
+| messageTypeId | `byte`   | 消息对象的类型号（一字节） |
+| messageData   | `byte[]` | 与该类型相关的携带参数   |
+
+消息类型与携带参数：  
+类型: **文本**  
+类型ID: **0x00**
+
+| 项目        | 类型             | 描述      |
+|-----------|----------------|---------|
+| plainText | `VarIntString` | 一般的消息内容 |
+
+类型: **@**  
+类型ID: **0x01**
+
+| 项目       | 类型        | 描述      |
+|----------|-----------|---------|
+| targetId | `VarLong` | 被@的对象QQ |
+
+类型: **@全体成员**  
+类型ID: **0x02**
+
+| 项目  | 类型  | 描述  |
+|-----|-----|-----|
+| 无   | 无   | 无   |
+
+类型: **图片**  
+类型ID: **0x03**
+
+| 项目     | 类型             | 描述     |
+|--------|----------------|--------|
+| picUrl | `VarIntString` | 图片链接地址 |
+
+类型: **回复消息**  
+类型ID: **0x04**
+
+| 项目                  | 类型             | 描述        |
+|---------------------|----------------|-----------|
+| fromId              | `VarLong`      | 被回复对象QQ   |
+| oldMessagePlainText | `VarIntString` | 被回复的原消息内容 |
+
+类型: **动画表情**  
+类型ID: **0x05**
+
+| 项目     | 类型             | 描述       |
+|--------|----------------|----------|
+| picUrl | `VarIntString` | 动画表情链接地址 |
 
 <br>
 
