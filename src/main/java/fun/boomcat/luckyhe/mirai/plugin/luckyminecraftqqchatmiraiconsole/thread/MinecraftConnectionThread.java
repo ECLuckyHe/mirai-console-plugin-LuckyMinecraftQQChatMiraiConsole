@@ -8,15 +8,13 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ConnectionPacketReceiveUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.AsyncCaller;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
+import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.message.data.*;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -36,6 +34,9 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString onlinePlayersCommandResponseSeparator;
     private final VarIntString rconCommandPrefix;
     private final VarIntString rconCommandResultFormat;
+    private final VarIntString userCommandPrefix;
+    private final VarIntString userBindPrefix;
+    private final VarIntString[] getUserCommandsCommands;
 
     //    断开原因
     private String disconnectReason = "异常退出";
@@ -51,6 +52,18 @@ public class MinecraftConnectionThread extends Thread {
     private final Queue<Long> pingQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> onlinePlayersCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
     private final Queue<Long> rconCommandSendGroupQueue = new ConcurrentLinkedQueue<>();
+    //    添加用户指令的队列
+    private final Queue<Long> addUserCommandQueue = new ConcurrentLinkedQueue<>();
+    //    删除用户指令的队列
+    private final Queue<Long> delUserCommandQueue = new ConcurrentLinkedQueue<>();
+    //    获取用户指令（mcchat指令）队列
+    private final Queue<Long> getMcChatUserCommandsQueue = new ConcurrentLinkedQueue<>();
+    //    绑定qq和mcid队列（群号）
+    private final Queue<Long> userBindQueue = new ConcurrentLinkedQueue<>();
+    //    发送用户指令队列（群号）
+    private final Queue<Long> userCommandGroupQueue = new ConcurrentLinkedQueue<>();
+    //    获取用户指令（普通用户）队列
+    private final Queue<Long> getUserCommandsGroupQueue = new ConcurrentLinkedQueue<>();
 
     private final Socket socket;
     private final InputStream inputStream;
@@ -78,6 +91,95 @@ public class MinecraftConnectionThread extends Thread {
         addSendQueue(new Packet(new VarInt(packetId.getBytesLength() + string.getBytesLength()), packetId, string.getBytes()));
     }
 
+    public void sendMessage(
+            long groupId,
+            String groupName,
+            String groupNickname,
+            long senderId,
+            String senderNickname,
+            String senderGroupNickname,
+            MessageChain message
+    ) {
+        VarInt packetId = new VarInt(0x10);
+        VarLong gi = new VarLong(groupId);
+        VarIntString gn = new VarIntString(groupName);
+        VarIntString gnm = new VarIntString(groupNickname);
+        VarLong si = new VarLong(senderId);
+        VarIntString snm = new VarIntString(senderNickname);
+        VarIntString sgnm = new VarIntString(senderGroupNickname.length() == 0 ? senderNickname : senderGroupNickname);
+
+        int len = packetId.getBytesLength() + gi.getBytesLength() +
+                gn.getBytesLength() + gnm.getBytesLength() +
+                si.getBytesLength() + snm.getBytesLength() +
+                sgnm.getBytesLength();
+
+        byte[] data = ByteUtil.byteMergeAll(
+                gi.getBytes(),
+                gn.getBytes(),
+                gnm.getBytes(),
+                si.getBytes(),
+                snm.getBytes(),
+                sgnm.getBytes()
+        );
+
+//        处理消息
+        List<byte[]> messageBytes = new ArrayList<>();
+        for (SingleMessage singleMessage : message) {
+            if (singleMessage instanceof At) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x01},
+                        new VarLong(((At) singleMessage).getTarget()).getBytes()
+                ));
+            } else if (singleMessage instanceof AtAll) {
+                messageBytes.add(ByteUtil.byteMergeAll(new byte[] {0x02}));
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[动画表情]")) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x05},
+                        new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()
+                ));
+            } else if (singleMessage instanceof Image && singleMessage.contentToString().equals("[图片]")) {
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x03},
+                        new VarIntString(Image.queryUrl(((Image) singleMessage))).getBytes()
+                ));
+            } else if (singleMessage instanceof QuoteReply) {
+                QuoteReply quoteReply = (QuoteReply) singleMessage;
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x04},
+                        new VarLong(quoteReply.getSource().getFromId()).getBytes(),
+                        new VarIntString(quoteReply.getSource().getOriginalMessage().contentToString()).getBytes()
+                ));
+            } else {
+//                其他，长度为0则不发
+                String s = singleMessage.contentToString();
+                if (s.length() == 0) {
+                    continue;
+                }
+
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x00},
+                        new VarIntString(s).getBytes()
+                ));
+            }
+        }
+
+//        组装消息
+        VarInt messageBytesLength = new VarInt(messageBytes.size());
+        len += messageBytesLength.getBytesLength();
+        data = ByteUtil.byteMergeAll(data, messageBytesLength.getBytes());
+
+        for (byte[] bytes : messageBytes) {
+            len += bytes.length;
+            data = ByteUtil.byteMergeAll(data, bytes);
+        }
+
+        addSendQueue(new Packet(
+                new VarInt(len),
+                packetId,
+                data
+        ));
+    }
+
     public synchronized void sendGetOnlinePlayersPacket(long groupId) {
 //        同步方法防止顺序错误
         onlinePlayersCommandSendGroupQueue.add(groupId);
@@ -86,6 +188,7 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendRconCommandPacket(long groupId, long senderId, String command) {
+//        发送rcon指令
         rconCommandSendGroupQueue.add(groupId);
         VarInt packetId = new VarInt(0x22);
         VarLong senderIdLong = new VarLong(senderId);
@@ -98,6 +201,7 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public synchronized void sendAnnouncementPacket(long senderId, String senderNickname, String announcement) {
+//        发送公告
         VarInt packetId = new VarInt(0x23);
         VarLong senderIdLong = new VarLong(senderId);
         VarIntString senderNicknameString = new VarIntString(senderNickname);
@@ -110,8 +214,102 @@ public class MinecraftConnectionThread extends Thread {
         ));
     }
 
+    public synchronized void sendUserCommandPacket(long senderId, long groupId, String command) {
+//        发送用户指令
+        userCommandGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x24);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString commandString = new VarIntString(command);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + commandString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), commandString.getBytes())
+        ));
+    }
+
+    public synchronized void sendAddUserCommandPacket(long senderId, String name, String userCommand, String mapCommand) {
+//        添加用户指令
+        addUserCommandQueue.add(senderId);
+        VarInt packetId = new VarInt(0x25);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString nameString = new VarIntString(name);
+        VarIntString userCommandString = new VarIntString(userCommand);
+        VarIntString mapCommandString = new VarIntString(mapCommand);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() +
+                        senderIdLong.getBytesLength() +
+                        nameString.getBytesLength() +
+                        userCommandString.getBytesLength() +
+                        mapCommandString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(
+                        senderIdLong.getBytes(),
+                        nameString.getBytes(),
+                        userCommandString.getBytes(),
+                        mapCommandString.getBytes()
+                )
+        ));
+    }
+
+    public synchronized void sendUserBindPacket(long groupId, long senderId, String mcid) {
+//        绑定qq和mcid
+        userBindQueue.add(groupId);
+        VarInt packetId = new VarInt(0x28);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString mcidString = new VarIntString(mcid);
+
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() + senderIdLong.getBytesLength() + mcidString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(senderIdLong.getBytes(), mcidString.getBytes())
+        ));
+    }
+
+    public synchronized void sendDelUserCommandPacket(long senderId, String name) {
+//        删除用户指令
+        delUserCommandQueue.add(senderId);
+        VarInt packetId = new VarInt(0x26);
+        VarLong senderIdLong = new VarLong(senderId);
+        VarIntString nameString = new VarIntString(name);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength() +
+                        senderIdLong.getBytesLength() +
+                        nameString.getBytesLength()),
+                packetId,
+                ByteUtil.byteMergeAll(
+                        senderIdLong.getBytes(),
+                        nameString.getBytes()
+                )
+        ));
+    }
+
+    public synchronized void sendGetMcChatUserCommands(long senderId) {
+//        获取用户指令列表（mcchat指令）
+        getMcChatUserCommandsQueue.add(senderId);
+        VarInt packetId = new VarInt(0x27);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength()),
+                packetId,
+                new byte[]{}
+        ));
+    }
+
+    public synchronized void sendGetUserCommands(long groupId) {
+//        获取用户指令列表（普通用户）
+        getUserCommandsGroupQueue.add(groupId);
+        VarInt packetId = new VarInt(0x29);
+        addSendQueue(new Packet(
+                new VarInt(packetId.getBytesLength()),
+                packetId,
+                new byte[]{}
+        ));
+    }
+
     @Override
     public void run() {
+        List<Object> pingRight = new ArrayList<>();
 //        发送线程，负责从队列取数据包发送
 //        发送前先确认，若为关闭包，则发送后关闭socket
         AsyncCaller.run(() -> {
@@ -190,9 +388,16 @@ public class MinecraftConnectionThread extends Thread {
             String threadName = "心跳";
             logInfo(threadName, "线程启动");
             Random random = new Random();
+//            该标记用于表示是否为第一次心跳包，主要是为了进入循环后马上发送一次心跳包
+            boolean theFirstTime = true;
             while (isConnected) {
                 try {
-                    Thread.sleep(1000L * ConfigOperation.getHeartbeat());
+                    for (int i = 0; (!theFirstTime) && i < ConfigOperation.getHeartbeat() && isConnected; i++) {
+                        Thread.sleep(1000L);
+                    }
+                    if (theFirstTime) {
+                        theFirstTime = false;
+                    }
                 } catch (Exception e) {
                     isConnected = false;
 //                    e.printStackTrace();
@@ -222,11 +427,11 @@ public class MinecraftConnectionThread extends Thread {
                     }
                 }
 
-//                生成一个不为0的ping数
+//                生成一个不为0和1的ping数
                 long pingNumber;
                 do {
                     pingNumber = random.nextLong();
-                } while (pingNumber == 0);
+                } while (pingNumber == 0 || pingNumber == 1);
 
                 pingQueue.add(pingNumber);
 
@@ -250,6 +455,9 @@ public class MinecraftConnectionThread extends Thread {
         AsyncCaller.run(() -> {
             String threadName = "接收处理";
             logInfo(threadName, "线程启动");
+//            是否是第一次接收到心跳包的标记
+            boolean isFirstTime = true;
+            cycle:
             while (isConnected) {
                 try {
                     Packet packet = receiveQueue.take();
@@ -269,11 +477,30 @@ public class MinecraftConnectionThread extends Thread {
                                 break;
                             }
 
-                            if (!(ping.getValue() == sent)) {
+                            if (!(ping.getValue() == sent + ConfigOperation.getHeartbeat())) {
 //                                    如果不匹配则断开连接
                                 logError(threadName, "心跳包回应错误，开始关闭Socket");
                                 isConnected = false;
                                 socket.close();
+                                break cycle;
+                            }
+
+                            if (isFirstTime) {
+                                //            向群内公告此连接
+                                session.sendMessageToAllGroups(new PlainText("有Minecraft服务端接入会话！\n会话名：" + session.getName() + "\n" +
+                                        "服务端名称：" + serverName.getContent() + "\n" +
+                                        "地址：" + serverAddress + "\n" +
+                                        "时间：" + new Date()));
+                                isFirstTime = false;
+                                pingRight.add(new Object());
+
+                                VarInt confirmPacketId = new VarInt(0x20);
+                                VarLong value = new VarLong(1);
+                                sendQueue.add(new Packet(
+                                        new VarInt(confirmPacketId.getBytesLength() + value.getBytesLength()),
+                                        confirmPacketId,
+                                        value.getBytes()
+                                ));
                             }
 
                             break;
@@ -289,26 +516,26 @@ public class MinecraftConnectionThread extends Thread {
 //                                玩家加入游戏消息包接收
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             joinFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
                                             MinecraftFormatPlaceholder.PLAYER_NAME,
                                             new VarIntString(packet.getData()).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x11:
 //                                玩家离开游戏时消息包接收
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             quitFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
                                             MinecraftFormatPlaceholder.PLAYER_NAME,
                                             new VarIntString(packet.getData()).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x12:
@@ -316,7 +543,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn12 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             msgFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -328,7 +555,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn12.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x13:
@@ -336,7 +563,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn13 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             deathFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -348,7 +575,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn13.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x14:
@@ -356,7 +583,7 @@ public class MinecraftConnectionThread extends Thread {
                             VarIntString pn14 = new VarIntString(packet.getData());
                             session.sendMessageFromMinecraftThread(
                                     this,
-                                    ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                             kickFormatString.getContent(),
                                             MinecraftFormatPlaceholder.SERVER_NAME,
                                             serverName.getContent(),
@@ -368,7 +595,7 @@ public class MinecraftConnectionThread extends Thread {
                                                     pn14.getBytesLength(),
                                                     packet.getData().length
                                             )).getContent()
-                                    )
+                                    )))
                             );
                             break;
                         case 0x21:
@@ -411,7 +638,7 @@ public class MinecraftConnectionThread extends Thread {
                             );
 
 //                                发送消息到群内
-                            session.sendMessageToGroup(getOnlineGroup, res);
+                            session.sendMessageToGroup(getOnlineGroup, new PlainText(Objects.requireNonNull(res)));
                             break;
 
                         case 0x22:
@@ -420,20 +647,166 @@ public class MinecraftConnectionThread extends Thread {
                             Long commandGroupId = rconCommandSendGroupQueue.poll();
                             if (commandGroupId == null) {
 //                                    没有人发送指令但却收到了指令回复
-                                logError(threadName, "没有人发送指令但却收到了指令回复包，开始关闭Socket");
+                                logError(threadName, "没有人发送管理员指令但却收到了指令回复包，开始关闭Socket");
                                 isConnected = false;
                                 socket.close();
                                 break;
                             }
 
-                            session.sendMessageToGroup(commandGroupId, ReplacePlaceholderUtil.replacePlaceholderWithString(
+                            session.sendMessageToGroup(commandGroupId, new PlainText(MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
                                     rconCommandResultFormat.getContent(),
                                     MinecraftFormatPlaceholder.SERVER_NAME,
                                     serverName.getContent(),
                                     MinecraftFormatPlaceholder.RESULT,
                                     commandRes.getContent()
-                            ));
+                            )))));
                             break;
+
+                        case 0x24: {
+//                            用户指令返回结果
+                            VarIntString commandResult = new VarIntString(packet.getData());
+                            Long groupId = userCommandGroupQueue.poll();
+                            if (groupId == null) {
+//                                    没有人发送指令但却收到了指令回复
+                                logError(threadName, "没有人发送用户指令但却收到了用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            session.sendMessageToGroup(groupId, new PlainText(MessageUtil.getColorCodeRemoved(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    rconCommandResultFormat.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.RESULT,
+                                    commandResult.getContent()
+                            )))));
+
+
+                            break;
+                        }
+
+                        case 0x25: {
+//                            添加用户指令返回
+                            VarIntString msg = new VarIntString(packet.getData());
+                            Long id = addUserCommandQueue.poll();
+
+                            if (id == null) {
+                                logError(threadName, "没有人发送添加用户指令但却收到了添加用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            session.sendMessageToFriend(id, new PlainText("[异步消息] " + msg.getContent()));
+
+                            break;
+                        }
+
+                        case 0x26: {
+//                            删除用户指令返回
+                            VarIntString msg = new VarIntString(packet.getData());
+                            Long id = delUserCommandQueue.poll();
+
+                            if (id == null) {
+                                logError(threadName, "没有人发送删除用户指令但却收到了删除用户指令回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            session.sendMessageToFriend(id, new PlainText("[异步消息] " + msg.getContent()));
+
+                            break;
+                        }
+
+                        case 0x27:
+                        case 0x29: {
+//                            获取用户指令列表
+                            Long qq = null;
+                            Long groupId = null;
+                            if (packet.getId().getValue() == 0x27) {
+//                                mcchat获取
+                                qq = getMcChatUserCommandsQueue.poll();
+                                if (qq == null) {
+                                    logError(threadName, "没有人发送获取用户指令（mcchat指令）列表包但是却收到了，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
+                            }
+
+                            if (packet.getId().getValue() == 0x29) {
+//                                普通用户获取
+                                groupId = getUserCommandsGroupQueue.poll();
+                                if (groupId == null) {
+                                    logError(threadName, "没有人发送获取用户指令（普通用户）列表包但是却收到了，开始关闭Socket");
+                                    isConnected = false;
+                                    socket.close();
+                                    break;
+                                }
+                            }
+
+                            byte[] data = packet.getData();
+                            int i = 0;
+                            VarInt commandLength = new VarInt(Arrays.copyOfRange(data, i, data.length));
+                            i += commandLength.getBytesLength();
+
+                            List<Map<String, String>> commandMaps = new ArrayList<>();
+
+                            for (int j = 0; j < commandLength.getValue(); j++) {
+                                VarIntString name = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += name.getBytesLength();
+                                VarIntString command = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += command.getBytesLength();
+                                VarIntString mapping = new VarIntString(Arrays.copyOfRange(data, i, data.length));
+                                i += mapping.getBytesLength();
+
+                                Map<String, String> newMap = new HashMap<>();
+                                newMap.put("name", name.getContent());
+                                newMap.put("command", command.getContent());
+                                newMap.put("mapping", mapping.getContent());
+
+                                commandMaps.add(newMap);
+                            }
+
+                            if (packet.getId().getValue() == 0x27) {
+                                session.sendMessageToFriend(qq, UserCommandUtil.getForwardMessage(
+                                        Bot.getInstances().get(0),
+                                        Bot.getInstances().get(0).getFriendOrFail(qq),
+                                        commandMaps,
+                                        null
+                                ));
+                            }
+
+                            if (packet.getId().getValue() == 0x29) {
+                                session.sendMessageToGroup(groupId, UserCommandUtil.getForwardMessage(
+                                        Bot.getInstances().get(0),
+                                        Bot.getInstances().get(0).getGroupOrFail(groupId),
+                                        commandMaps,
+                                        this
+                                ));
+                            }
+
+                            break;
+                        }
+
+                        case 0x28: {
+//                            绑定mcid和qq返回结果
+                            Long groupId = userBindQueue.poll();
+                            if (groupId == null) {
+                                logError(threadName, "没有人发送绑定用户数据包但却收到了绑定用户回复包，开始关闭Socket");
+                                isConnected = false;
+                                socket.close();
+                                break;
+                            }
+
+                            VarIntString msg = new VarIntString(packet.getData());
+
+                            session.sendMessageToGroup(groupId, new PlainText(msg.getContent()));
+
+                            break;
+                        }
                     }
                 } catch (Exception e) {
 //                    e.printStackTrace();
@@ -490,11 +863,13 @@ public class MinecraftConnectionThread extends Thread {
         logInfo("总线程", "已撤除该连接");
 
 //        发送断开连接消息
-        session.sendMessageToAllGroups("有Minecraft服务端断开会话！\n会话名：" +
-                session.getName() + "\n服务端名称：" +
-                serverName.getContent() + "\n地址：" +
-                serverAddress + "\n原因：" +
-                disconnectReason + "\n时间：" + new Date());
+        if (pingRight.size() == 1) {
+            session.sendMessageToAllGroups(new PlainText("有Minecraft服务端断开会话！\n会话名：" +
+                    session.getName() + "\n服务端名称：" +
+                    serverName.getContent() + "\n地址：" +
+                    serverAddress + "\n原因：" +
+                    disconnectReason + "\n时间：" + new Date()));
+        }
     }
 
     public void addSendQueue(Packet packet) {
@@ -517,8 +892,20 @@ public class MinecraftConnectionThread extends Thread {
         return onlinePlayersCommands;
     }
 
+    public VarIntString[] getGetUserCommandsCommands() {
+        return getUserCommandsCommands;
+    }
+
     public VarIntString getRconCommandPrefix() {
         return rconCommandPrefix;
+    }
+
+    public VarIntString getUserCommandPrefix() {
+        return userCommandPrefix;
+    }
+
+    public VarIntString getUserBindPrefix() {
+        return userBindPrefix;
     }
 
     public MinecraftConnectionThread(
@@ -534,7 +921,10 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString onlinePlayersCommandResponseFormat,
             VarIntString onlinePlayersCommandResponseSeparator,
             VarIntString rconCommandPrefix,
-            VarIntString rconCommandResultFormat
+            VarIntString rconCommandResultFormat,
+            VarIntString userCommandPrefix,
+            VarIntString userBindPrefix,
+            VarIntString[] getUserCommandsCommands
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -549,6 +939,9 @@ public class MinecraftConnectionThread extends Thread {
         this.onlinePlayersCommandResponseSeparator = onlinePlayersCommandResponseSeparator;
         this.rconCommandPrefix = rconCommandPrefix;
         this.rconCommandResultFormat = rconCommandResultFormat;
+        this.userCommandPrefix = userCommandPrefix;
+        this.userBindPrefix = userBindPrefix;
+        this.getUserCommandsCommands = getUserCommandsCommands;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());
