@@ -1,6 +1,5 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils;
 
-import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.contact.Contact;
 
 public class MessageUtil {
@@ -33,5 +32,9 @@ public class MessageUtil {
 
             current ++;
         }
+    }
+
+    public static String getColorCodeRemoved(String msg) {
+        return msg.replaceAll("§\\w", "");
     }
 }

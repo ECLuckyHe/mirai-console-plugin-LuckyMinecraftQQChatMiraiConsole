@@ -2,15 +2,14 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo;
 
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarInt;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarIntString;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.datatype.VarLong;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.exception.MinecraftThreadNotFoundException;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.pojo.Packet;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.util.ByteUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MinecraftFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.QqFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.message.data.Message;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
 
@@ -24,6 +23,7 @@ public class Session {
     private String name;
     private final List<SessionGroup> groups;
     private String formatString;
+    private List<Long> administrators;
     private final List<MinecraftConnectionThread> minecraftThreads = new ArrayList<>();
 
     public boolean hasGroup(long groupId) {
@@ -35,7 +35,16 @@ public class Session {
         return false;
     }
 
-    public void sendClosePacketToMinecraftThread(String info) {
+    public boolean hasAdministrator(long qq) {
+        for (Long administrator : administrators) {
+            if (administrator.equals(qq)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void sendClosePacketToMinecraftThreads(String info) {
         for (MinecraftConnectionThread thread : minecraftThreads) {
             thread.sendClosePacket(info);
         }
@@ -96,21 +105,22 @@ public class Session {
     ) throws FileNotFoundException {
 //        处理从群来的消息
 
-//        发送获取在线玩家信息数据
+        boolean found = false;
+        for (SessionGroup group : groups) {
+            if (group.getId() == groupId) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+//        发送获取数据
         for (MinecraftConnectionThread thread : minecraftThreads) {
-//            群号不在
-            boolean found = false;
-            for (SessionGroup group : groups) {
-                if (group.getId() == groupId) {
-                    found = true;
-                    break;
-                }
-            }
 
-            if (!found) {
-                continue;
-            }
-
+//            获取在线玩家部分
             VarIntString[] onlinePlayersCommands = thread.getOnlinePlayersCommands();
             for (VarIntString onlinePlayersCommand : onlinePlayersCommands) {
                 if (ReplacePlaceholderUtil.replacePlaceholderWithString(
@@ -122,23 +132,53 @@ public class Session {
                 }
             }
 
+//            获取所有用户指令部分
+            VarIntString[] getUserCommandsCommands = thread.getGetUserCommandsCommands();
+            for (VarIntString getUserCommands : getUserCommandsCommands) {
+                if (ReplacePlaceholderUtil.replacePlaceholderWithString(
+                        getUserCommands.getContent(),
+                        MinecraftFormatPlaceholder.SERVER_NAME,
+                        thread.getServerName().getContent()
+                ).equals(message.contentToString())) {
+                    thread.sendGetUserCommands(groupId);
+                }
+            }
+
 //            发送指令部分
-            String prefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+            String opCommandPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
                     thread.getRconCommandPrefix().getContent(),
                     MinecraftFormatPlaceholder.SERVER_NAME,
                     thread.getServerName().getContent()
             );
+            String userCommandPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getUserCommandPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            );
+            String userBindPrefix = ReplacePlaceholderUtil.replacePlaceholderWithString(
+                    thread.getUserBindPrefix().getContent(),
+                    MinecraftFormatPlaceholder.SERVER_NAME,
+                    thread.getServerName().getContent()
+            );
 
-            assert prefix != null;
-            if (!message.contentToString().startsWith(prefix)) {
-                continue;
+//            assert opCommandPrefix != null;
+//            if (!message.contentToString().startsWith(opCommandPrefix)) {
+//                continue;
+//            }
+
+            if (message.contentToString().startsWith(opCommandPrefix) && !message.contentToString().equals(opCommandPrefix)) {
+                thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(opCommandPrefix.length()));
             }
-
-            thread.sendRconCommandPacket(groupId, senderId, message.contentToString().substring(prefix.length()));
+            if (message.contentToString().startsWith(userCommandPrefix) && !message.contentToString().equals(userCommandPrefix)) {
+                thread.sendUserCommandPacket(senderId, groupId, message.contentToString().substring(userCommandPrefix.length()));
+            }
+            if (message.contentToString().startsWith(userBindPrefix) && !message.contentToString().equals(userBindPrefix)) {
+                thread.sendUserBindPacket(groupId, senderId, message.contentToString().substring(userBindPrefix.length()));
+            }
         }
 
         sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
-        sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message.contentToString());
+        sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
     }
 
     public void sendAnnouncementToMinecraftConnection(long senderId, String senderNickname, String serverName, String announcement) throws MinecraftThreadNotFoundException {
@@ -169,7 +209,7 @@ public class Session {
             long senderId,
             String senderNickname,
             String senderGroupNickname,
-            String message
+            MessageChain message
     ) {
 //        群->mc
 //        转成对应类型
@@ -178,36 +218,18 @@ public class Session {
             return;
         }
 
-        VarInt packetId = new VarInt(0x10);
-        VarLong gi = new VarLong(groupId);
-        VarIntString gn = new VarIntString(groupName);
-        VarIntString gnm = new VarIntString(groupNickname);
-        VarLong si = new VarLong(senderId);
-        VarIntString snm = new VarIntString(senderNickname);
-        VarIntString sgnm = new VarIntString(senderGroupNickname.length() == 0 ? senderNickname : senderGroupNickname);
-        VarIntString msg = new VarIntString(message);
-
         synchronized (minecraftThreads) {
             for (MinecraftConnectionThread thread : minecraftThreads) {
 //                添加进发送队列中
-                thread.addSendQueue(new Packet(
-                        new VarInt(
-                                packetId.getBytesLength() + gi.getBytesLength() +
-                                        gn.getBytesLength() + gnm.getBytesLength() +
-                                        si.getBytesLength() + snm.getBytesLength() +
-                                        sgnm.getBytesLength() + msg.getBytesLength()
-                        ),
-                        packetId,
-                        ByteUtil.byteMergeAll(
-                                gi.getBytes(),
-                                gn.getBytes(),
-                                gnm.getBytes(),
-                                si.getBytes(),
-                                snm.getBytes(),
-                                sgnm.getBytes(),
-                                msg.getBytes()
-                        )
-                ));
+                thread.sendMessage(
+                        groupId,
+                        groupName,
+                        groupNickname,
+                        senderId,
+                        senderNickname,
+                        senderGroupNickname,
+                        message
+                );
             }
         }
     }
@@ -291,7 +313,7 @@ public class Session {
         return null;
     }
 
-    public void sendMessageToGroup(long groupId, String message) {
+    public void sendMessageToGroup(long groupId, Message message) {
         try {
             Bot.getInstances().get(0).getGroupOrFail(groupId).sendMessage(message);
         } catch (Exception e) {
@@ -299,7 +321,13 @@ public class Session {
         }
     }
 
-    public void sendMessageToAllGroups(String message) {
+    public void sendMessageToFriend(long friendId, Message message) {
+        try {
+            Bot.getInstances().get(0).getFriendOrFail(friendId).sendMessage(message);
+        } catch (Exception e) {}
+    }
+
+    public void sendMessageToAllGroups(Message message) {
         for (SessionGroup group : groups) {
             try {
                 Bot.getInstances().get(0).getGroupOrFail(group.getId()).sendMessage(message);
@@ -356,11 +384,20 @@ public class Session {
         this.name = name;
     }
 
-    public Session(long id, String name, List<SessionGroup> groups, String formatString) {
+    public List<Long> getAdministrators() {
+        return administrators;
+    }
+
+    public void setAdministrators(List<Long> administrators) {
+        this.administrators = administrators;
+    }
+
+    public Session(long id, String name, List<SessionGroup> groups, String formatString, List<Long> administrators) {
         this.id = id;
         this.name = name;
         this.groups = groups;
         this.formatString = formatString;
+        this.administrators = administrators;
     }
 
     @Override

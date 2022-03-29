@@ -1,5 +1,8 @@
+# 绑定ip地址
+ip: "0.0.0.0"
+
 # 开放的端口号
 port: 54100
 
 # 心跳包间隔（秒）
-heartbeat: 5
+heartbeat: 10

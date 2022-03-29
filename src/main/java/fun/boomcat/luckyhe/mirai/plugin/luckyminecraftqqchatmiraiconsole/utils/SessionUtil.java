@@ -12,6 +12,7 @@ import net.mamoe.mirai.utils.MiraiLogger;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 public class SessionUtil {
     private static List<Session> sessions;
@@ -40,6 +41,17 @@ public class SessionUtil {
         throw new SessionDataNotExistException();
     }
 
+    public static Session getUserSession(long sessionId, long qq) throws FileNotFoundException, SessionDataNotExistException {
+        List<Session> userSessions = getUserSessions(qq);
+        for (Session session : userSessions) {
+            if (session.getId() == sessionId) {
+                return session;
+            }
+        }
+
+        throw new SessionDataNotExistException();
+    }
+
     public static String sessionToString(Session session) {
         StringBuilder sb = new StringBuilder();
         sb.append("会话号：").append(session.getId()).append("\n");
@@ -54,6 +66,17 @@ public class SessionUtil {
             sb.append("\n");
             for (SessionGroup group : groups) {
                 sb.append("    ").append(group.getName()).append("(").append(group.getId()).append(")").append("\n");
+            }
+        }
+
+        sb.append("管理员列表：");
+        List<Long> administrators = session.getAdministrators();
+        if (administrators.size() == 0) {
+            sb.append("空\n");
+        } else {
+            sb.append("\n");
+            for (Long administrator : administrators) {
+                sb.append("    ").append(administrator).append("\n");
             }
         }
 
@@ -94,13 +117,23 @@ public class SessionUtil {
 
     public static void closeAllConnections(String info) throws FileNotFoundException, InterruptedException {
         logger.info("开始关闭所有连接线程");
+        CountDownLatch cdl = new CountDownLatch(getSessions().size());
         for (Session session : getSessions()) {
-            session.sendClosePacketToMinecraftThread(info);
-            while (session.getMinecraftThreads().size() != 0) {
-                logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
-                Thread.sleep(1000);
-            }
+            AsyncCaller.run(() -> {
+                session.sendClosePacketToMinecraftThreads(info);
+                while (session.getMinecraftThreads().size() != 0) {
+                    logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                cdl.countDown();
+            });
         }
+
+        cdl.await();
         logger.info("所有连接线程关闭完成");
     }
 
@@ -111,6 +144,24 @@ public class SessionUtil {
             sessionGroups.add(new SessionGroup(group.getId(), group.getName()));
         }
 
-        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString());
+        List<Long> administrators = new ArrayList<>();
+        for (Long administrator : session.getAdministrators()) {
+            administrators.add(administrator);
+        }
+
+        return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString(), administrators);
+    }
+
+    public static List<Session> getUserSessions(Long qq) throws FileNotFoundException {
+        List<Session> res = new ArrayList<>();
+
+        List<Session> sessions = getSessions();
+        for (Session session : sessions) {
+            if (session.getAdministrators().contains(qq)) {
+                res.add(session);
+            }
+        }
+
+        return res;
     }
 }

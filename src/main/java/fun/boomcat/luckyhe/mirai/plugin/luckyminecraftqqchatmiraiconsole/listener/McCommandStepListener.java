@@ -10,9 +10,12 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MessageUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionModifyUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStep;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.opmcchatcommand.OpMcChatCommandStepUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStep;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.mcchatcommand.McChatCommandStepUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.Announcement;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommand;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommandAdd;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.pojo.UserCommandDel;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
@@ -26,25 +29,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class OpMcCommandStepListener implements ListenerHost {
-
+public class McCommandStepListener implements ListenerHost {
     private LuckyMinecraftQQChatMiraiConsole INSTANCE;
-
-    //    临时存放新会话号
-    private final static Map<Long, Long> newSessionIdTempMap = new HashMap<>();
-    //    临时存放新会话名
-    private final static Map<Long, String> newSessionNameTempMap = new HashMap<>();
-    //    临时存放群互通消息格式
-    private final static Map<Long, String> newSessionGroupFormatTempMap = new HashMap<>();
-    //    临时存放即将删除的会话
-    private final static Map<Long, Session> delSessionIdTempMap = new HashMap<>();
-    //    临时存放正在进行操作的会话（该会话是复制的，不会影响到正在运行的会话）
+    //    临时存放正在进行操作的会话
     private final static Map<Long, Session> modifySessionIdTempMap = new HashMap<>();
     //    临时存放正在发送的公告对象
     private final static Map<Long, Announcement> announceTempMap = new HashMap<>();
+    //    临时存放修改用户指令的对象
+    private final static Map<Long, UserCommand> userCommandTempMap = new HashMap<>();
+    //    临时存放修改用户指令的添加指令对象
+    private final static Map<Long, UserCommandAdd> userCommandAddTempMap = new HashMap<>();
+//    临时存放修改用户指令的删除指令对象
+    private final static Map<Long, UserCommandDel> userCommandDelTempMap = new HashMap<>();
 
-    public OpMcCommandStepListener(LuckyMinecraftQQChatMiraiConsole INSTANCE) {
-        this.INSTANCE = INSTANCE;
+    public McCommandStepListener(LuckyMinecraftQQChatMiraiConsole I) {
+        this.INSTANCE = I;
     }
 
     @EventHandler
@@ -55,28 +54,23 @@ public class OpMcCommandStepListener implements ListenerHost {
         Contact subject = e.getSubject();
         User sender = e.getSender();
 
-        if ((commandPrefix + INSTANCE.getOpMcChatCommandPrimaryName()).equalsIgnoreCase(content)) {
+        if ((commandPrefix + INSTANCE.getMcChatCommandPrimaryName()).equalsIgnoreCase(content)) {
             return;
         }
 
-        for (String secondaryName : INSTANCE.getOpMcChatCommandSecondaryNames()) {
+        for (String secondaryName : INSTANCE.getMcChatCommandSecondaryNames()) {
             if ((commandPrefix + secondaryName).equalsIgnoreCase(content)) {
                 return;
             }
         }
 
-        OpMcChatCommandStep step = OpMcChatCommandStepUtil.getStep(sender.getId());
+        McChatCommandStep step = McChatCommandStepUtil.getStep(sender.getId());
         if (step == null) {
             return;
         }
 
         if ("quit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
-            return;
-        }
-
-        if (SessionModifyUtil.isSessionModifying) {
-            subject.sendMessage("会话管理正在执行重要操作，暂时拒绝操作，请稍后重试");
+            McChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
             return;
         }
 
@@ -86,24 +80,6 @@ public class OpMcCommandStepListener implements ListenerHost {
                 break;
             case LIST:
                 onList(step, subject, sender, content);
-                break;
-            case ADD:
-                onAdd(step, subject, sender, content);
-                break;
-            case ADD_SESSION_NAME:
-                onAddSessionName(step, subject, sender, content);
-                break;
-            case ADD_GROUP_FORMAT:
-                onAddGroupFormat(step, subject, sender, content);
-                break;
-            case ADD_CONFIRM:
-                onAddConfirm(step, subject, sender, content);
-                break;
-            case DEL:
-                onDel(step, subject, sender, content);
-                break;
-            case DEL_CONFIRM:
-                onDelConfirm(step, subject, sender, content);
                 break;
             case MODIFY:
                 onModify(step, subject, sender, content);
@@ -123,12 +99,6 @@ public class OpMcCommandStepListener implements ListenerHost {
             case MODIFY_SESSION_NAME:
                 onModifySessionName(step, subject, sender, content);
                 break;
-            case MODIFY_ADD_ADMINISTRATOR:
-                onModifyAddAdministrator(step, subject, sender, content);
-                break;
-            case MODIFY_DEL_ADMINISTRATOR:
-                onModifyDelAdministrator(step, subject, sender, content);
-                break;
             case ANNOUNCE:
                 onAnnounce(step, subject, sender, content);
                 break;
@@ -138,32 +108,44 @@ public class OpMcCommandStepListener implements ListenerHost {
             case ANNOUNCE_MC:
                 onAnnounceMc(step, subject, sender, content);
                 break;
+            case USER_COMMAND:
+                onUserCommand(step, subject, sender, content);
+                break;
+            case USER_COMMAND_MENU:
+                onUserCommandMenu(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_NAME:
+                onUserCommandAddName(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_COMMAND:
+                onUserCommandAddCommand(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_MAPPING:
+                onUserCommandAddMapping(step, subject, sender, content);
+                break;
+            case USER_COMMAND_ADD_CONFIRM:
+                onUserCommandAddConfirm(step, subject, sender, content);
+                break;
+            case USER_COMMAND_DEL:
+                onUserCommandDelCommand(step, subject, sender, content);
+                break;
         }
     }
 
-    public void onMainMenu(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onMainMenu(McChatCommandStep step, Contact subject, User sender, String content) {
         switch (content.toLowerCase()) {
             case "list":
-//                查看会话信息
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.LIST, subject);
-                break;
-            case "add":
-//                添加会话信息
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ADD, subject);
-                break;
-            case "del":
-//                删除会话信息
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.DEL, subject);
+//                查看名下会话信息
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.LIST, subject);
                 break;
             case "modify":
-//                修改会话信息
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY, subject);
+//                修改名下会话信息
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY, subject);
                 break;
             case "announce":
-//                公告
                 Announcement announcement = new Announcement();
                 try {
-                    subject.sendMessage(announcement.toOutputString(SessionUtil.getSessions()));
+                    subject.sendMessage(announcement.toOutputString(SessionUtil.getUserSessions(sender.getId())));
                 } catch (Exception e) {
                     e.printStackTrace();
                     subject.sendMessage("在获取会话列表时产生异常，请稍后重试或联系开发者");
@@ -171,10 +153,14 @@ public class OpMcCommandStepListener implements ListenerHost {
                     return;
                 }
                 announceTempMap.put(sender.getId(), announcement);
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
+                break;
+//                用户指令相关
+            case "uc":
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND, subject);
                 break;
             case "exit":
-                OpMcChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
+                McChatCommandStepUtil.clearStep(sender.getId(), subject, "已退出指令");
                 break;
             default:
                 subject.sendMessage("无该指令");
@@ -183,18 +169,16 @@ public class OpMcCommandStepListener implements ListenerHost {
         }
     }
 
-    public void onList(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        会话号列表指令
+    public void onList(McChatCommandStep step, Contact subject, User sender, String content) {
         switch (content.toLowerCase()) {
             case "all":
-//                查看所有会话号
-                StringBuilder allSessionInfo = new StringBuilder();
-                allSessionInfo.append("主菜单/查看会话信息/所有会话号\n");
-                allSessionInfo.append("====================\n");
-                allSessionInfo.append("会话号(会话名)\n");
+                StringBuilder userSessionInfo = new StringBuilder();
+                userSessionInfo.append("主菜单/查看名下会话信息/所有会话号\n");
+                userSessionInfo.append("====================\n");
+                userSessionInfo.append("会话号(会话名)\n");
                 List<Session> sessions;
                 try {
-                    sessions = SessionUtil.getSessions();
+                    sessions = SessionUtil.getUserSessions(sender.getId());
                 } catch (Exception e) {
                     e.printStackTrace();
                     subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
@@ -203,18 +187,18 @@ public class OpMcCommandStepListener implements ListenerHost {
                 }
 
                 for (Session session : sessions) {
-                    allSessionInfo.append(session.getId()).append("(").append(session.getName()).append(")").append("\n");
+                    userSessionInfo.append(session.getId()).append("(").append(session.getName()).append(")").append("\n");
                 }
 
-                MessageUtil.pageSender(subject, allSessionInfo.toString());
+                MessageUtil.pageSender(subject, userSessionInfo.toString());
                 subject.sendMessage(step.getInstruction());
                 return;
             case "exit":
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
                 return;
         }
 
-//        此处以后为输入对应会话号查询
+//        输入会话号
         long sessionId;
         try {
             sessionId = Long.parseLong(content);
@@ -226,7 +210,7 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         Session session;
         try {
-            session = SessionUtil.getSession(sessionId);
+            session = SessionUtil.getUserSession(sessionId, sender.getId());
         } catch (SessionDataNotExistException e) {
             subject.sendMessage("会话号为" + sessionId + "的会话不存在");
             subject.sendMessage(step.getInstruction());
@@ -238,7 +222,7 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-        String sb = "主菜单/查看会话信息/会话" + sessionId + "\n" +
+        String sb = "主菜单/查看名下会话信息/会话" + sessionId + "\n" +
                 "====================\n" +
                 SessionUtil.sessionToString(session);
 
@@ -246,213 +230,22 @@ public class OpMcCommandStepListener implements ListenerHost {
         subject.sendMessage(step.getInstruction());
     }
 
-    public void onAdd(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        添加会话操作
-        if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-            return;
-        }
-
-//        以下为判断新会话操作
-        long newSessionId;
-        try {
-            newSessionId = Long.parseLong(content);
-        } catch (NumberFormatException e) {
-            subject.sendMessage("新会话号应为数字，而不是" + content);
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-        try {
-            SessionUtil.getSession(newSessionId);
-//            如果会话号存在，则会执行下方语句，否则将抛出异常
-            subject.sendMessage("会话号" + newSessionId + "已存在");
-            subject.sendMessage(step.getInstruction());
-            return;
-        } catch (SessionDataNotExistException ignored) {
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-//        下一步操作
-        newSessionIdTempMap.put(sender.getId(), newSessionId);
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ADD_SESSION_NAME, subject);
-    }
-
-    public void onAddSessionName(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-        if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-            return;
-        }
-
-//        以下为会话名输入
-        newSessionNameTempMap.put(sender.getId(), content);
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ADD_GROUP_FORMAT, subject);
-    }
-
-    public void onAddGroupFormat(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        输入群互通消息格式
-        if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-            return;
-        }
-
-//        以下为自定义互通消息格式
-        String groupFormat = "[%groupNickname%] <%senderGroupNickname%> %message%";
-        if (!content.equalsIgnoreCase("default")) {
-            groupFormat = content;
-        }
-        newSessionGroupFormatTempMap.put(sender.getId(), groupFormat);
-
-//        输出确认信息
-        subject.sendMessage("新会话号：" + newSessionIdTempMap.get(sender.getId()) + "\n" +
-                "会话名：" + newSessionNameTempMap.get(sender.getId()) + "\n" +
-                "群互通消息格式：" + newSessionGroupFormatTempMap.get(sender.getId()));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ADD_CONFIRM, subject);
-    }
-
-    public void onAddConfirm(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        添加会话确认
-        switch (content.toLowerCase()) {
-            case "ok":
-                if (SessionModifyUtil.isSessionModifying) {
-                    subject.sendMessage("当前正有其它重要操作正在执行，执行完毕后开始添加新会话");
-                }
-                synchronized (SessionModifyUtil.sessionModifyLock) {
-                    //                设置为忙碌状态
-                    SessionModifyUtil.isSessionModifying = true;
-                    subject.sendMessage("开始添加该新会话，请稍等");
-                    try {
-                        SessionDataOperation.addSessionData(
-                                newSessionIdTempMap.get(sender.getId()),
-                                newSessionNameTempMap.get(sender.getId()),
-                                newSessionGroupFormatTempMap.get(sender.getId())
-                        );
-                    } catch (SessionDataExistException e) {
-                        subject.sendMessage("会话号" + newSessionIdTempMap.get(sender.getId()) + "已存在，本次添加失败");
-                        subject.sendMessage(step.getInstruction());
-                        return;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
-                        subject.sendMessage(step.getInstruction());
-                        return;
-                    }
-                    subject.sendMessage("会话已经成功添加");
-//                解除忙碌状态
-                    SessionModifyUtil.isSessionModifying = false;
-                }
-
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-                break;
-            case "exit":
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-                return;
-            default:
-                subject.sendMessage("没有该指令");
-                subject.sendMessage("新会话号：" + newSessionIdTempMap.get(sender.getId()) + "\n" +
-                        "会话名：" + newSessionNameTempMap.get(sender.getId()) + "\n" +
-                        "群互通消息格式：" + newSessionGroupFormatTempMap.get(sender.getId()));
-                subject.sendMessage(step.getInstruction());
-                break;
-        }
-    }
-
-    public void onDel(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        删除会话信息
-        if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-            return;
-        }
-
-        long delSessionId;
-        try {
-            delSessionId = Long.parseLong(content);
-        } catch (NumberFormatException e) {
-            subject.sendMessage("会话号应为数字而不是" + content);
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-        Session session;
-        try {
-            session = SessionUtil.getSession(delSessionId);
-        } catch (SessionDataNotExistException e) {
-            subject.sendMessage("没有会话号为" + delSessionId + "的会话");
-            subject.sendMessage(step.getInstruction());
-            return;
-        } catch (Exception e) {
-            e.printStackTrace();
-            subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-        delSessionIdTempMap.put(sender.getId(), session);
-        subject.sendMessage("即将删除的会话号：" + SessionUtil.sessionToString(delSessionIdTempMap.get(sender.getId())));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.DEL_CONFIRM, subject);
-    }
-
-    public void onDelConfirm(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        删除会话确认
-        switch (content.toLowerCase()) {
-            case "ok":
-                if (SessionModifyUtil.isSessionModifying) {
-                    subject.sendMessage("当前正有其它重要操作正在执行，执行完毕后开始删除会话");
-                }
-
-                synchronized (SessionModifyUtil.sessionModifyLock) {
-                    SessionModifyUtil.isSessionModifying = true;
-                    subject.sendMessage("开始删除会话，请稍等");
-                    try {
-                        SessionDataOperation.removeSessionData(delSessionIdTempMap.get(sender.getId()).getId());
-                    } catch (SessionDataNotExistException e) {
-                        subject.sendMessage("会话号" + delSessionIdTempMap.get(sender.getId()).getId() + "不存在，本次删除失败");
-                        subject.sendMessage(step.getInstruction());
-                        return;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
-                        subject.sendMessage(step.getInstruction());
-                        return;
-                    }
-                    subject.sendMessage("删除会话完成");
-                    SessionModifyUtil.isSessionModifying = false;
-                }
-
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-                break;
-            case "exit":
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
-                break;
-            default:
-                subject.sendMessage("没有该指令");
-                subject.sendMessage("即将删除的会话号：" + SessionUtil.sessionToString(delSessionIdTempMap.get(sender.getId())));
-                subject.sendMessage(step.getInstruction());
-                break;
-        }
-    }
-
-    public void onModify(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModify(McChatCommandStep step, Contact subject, User sender, String content) {
 //        修改会话输入会话号
         if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
             return;
         }
 
         if ("list".equalsIgnoreCase(content)) {
             //                查看所有会话号
             StringBuilder allSessionInfo = new StringBuilder();
-            allSessionInfo.append("主菜单/查看会话信息/所有会话号\n");
+            allSessionInfo.append("主菜单/查看名下会话信息/所有会话号\n");
             allSessionInfo.append("====================\n");
             allSessionInfo.append("会话号(会话名)\n");
             List<Session> sessions;
             try {
-                sessions = SessionUtil.getSessions();
+                sessions = SessionUtil.getUserSessions(sender.getId());
             } catch (Exception e) {
                 e.printStackTrace();
                 subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
@@ -480,7 +273,7 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         Session session;
         try {
-            session = SessionUtil.getSession(modifySessionId);
+            session = SessionUtil.getUserSession(modifySessionId, sender.getId());
         } catch (SessionDataNotExistException e) {
             subject.sendMessage("没有会话号为" + modifySessionId + "的会话");
             subject.sendMessage(step.getInstruction());
@@ -492,44 +285,34 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        复制一个对话
         Session copiedSession = SessionUtil.copySessionWithNoThreads(session);
         modifySessionIdTempMap.put(sender.getId(), copiedSession);
         subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(copiedSession));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
     }
 
-    public void onModifyMain(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        修改会话操作
+    public void onModifyMain(McChatCommandStep step, Contact subject, User sender, String content) {
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
 
         switch (content.toLowerCase()) {
             case "exit":
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
                 break;
             case "gadd":
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_ADD_GROUP, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_ADD_GROUP, subject);
                 break;
             case "gdel":
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_DEL_GROUP, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_DEL_GROUP, subject);
                 break;
             case "format":
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_FORMAT, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_FORMAT, subject);
                 break;
             case "name":
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_SESSION_NAME, subject);
-                break;
-            case "aadd":
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_ADD_ADMINISTRATOR, subject);
-                break;
-            case "adel":
-                subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_DEL_ADMINISTRATOR, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_SESSION_NAME, subject);
                 break;
             case "ok":
                 onModifyOk(step, subject, sender, content);
@@ -542,17 +325,16 @@ public class OpMcCommandStepListener implements ListenerHost {
         }
     }
 
-    public void onModifyAddGroup(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModifyAddGroup(McChatCommandStep step, Contact subject, User sender, String content) {
 //        添加互通群
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
 
         if ("exit".equalsIgnoreCase(content)) {
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
             return;
         }
 
-//        以下为新互通群号和备注
         String[] split = content.split(" ");
         if (split.length < 2) {
             subject.sendMessage("不符合要求的格式");
@@ -561,7 +343,6 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        新群号
         String newGroupIdString = split[0];
         long newGroupId;
         try {
@@ -573,7 +354,6 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        新群昵称
         String newGroupNickname = content.substring(newGroupIdString.length()).trim();
         if (newGroupNickname.equalsIgnoreCase("")) {
             subject.sendMessage("群名不应为空");
@@ -582,7 +362,6 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        查看群号是否已存在
         for (SessionGroup group : tempSession.getGroups()) {
             if (group.getId() == newGroupId) {
                 subject.sendMessage("群" + group.getId() + "已存在");
@@ -597,17 +376,16 @@ public class OpMcCommandStepListener implements ListenerHost {
         subject.sendMessage(step.getInstruction());
     }
 
-    public void onModifyDelGroup(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModifyDelGroup(McChatCommandStep step, Contact subject, User sender, String content) {
 //        删除互通群
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
 
         if ("exit".equalsIgnoreCase(content)) {
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
             return;
         }
 
-//        要删除的群号
         long delGroupId;
         try {
             delGroupId = Long.parseLong(content);
@@ -618,7 +396,6 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        不存在该群
         if (!tempSession.hasGroup(delGroupId)) {
             subject.sendMessage("群" + delGroupId + "不存在于会话中");
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
@@ -626,13 +403,12 @@ public class OpMcCommandStepListener implements ListenerHost {
             return;
         }
 
-//        删除操作
         tempSession.getGroups().removeIf(s -> s.getId() == delGroupId);
         subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
         subject.sendMessage(step.getInstruction());
     }
 
-    public void onModifyFormat(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModifyFormat(McChatCommandStep step, Contact subject, User sender, String content) {
 //        修改互通格式
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
 
@@ -640,89 +416,40 @@ public class OpMcCommandStepListener implements ListenerHost {
         switch (content.toLowerCase()) {
             case "exit":
                 subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(modifySessionIdTempMap.get(sender.getId())));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
                 return;
             case "default":
                 newFormat = "[%groupNickname%] <%senderGroupNickname%> %message%";
                 break;
         }
 
-//        自定义格式
         if (newFormat == null) {
             newFormat = content;
         }
 
         tempSession.setFormatString(newFormat);
         subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
+
     }
 
-    public void onModifySessionName(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModifySessionName(McChatCommandStep step, Contact subject, User sender, String content) {
 //        修改会话名
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
 
         if ("exit".equalsIgnoreCase(content)) {
             subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
             return;
         }
 
         tempSession.setName(content);
         subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MODIFY_MAIN, subject);
+
     }
 
-    public void onModifyAddAdministrator(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        添加管理员
-        Session tempSession = modifySessionIdTempMap.get(sender.getId());
-
-        if ("exit".equalsIgnoreCase(content)) {
-            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
-            return;
-        }
-
-        long newQq;
-        try {
-            newQq = Long.parseLong(content);
-        } catch (NumberFormatException e) {
-            subject.sendMessage("管理员QQ应该为数字而不是" + content);
-            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-        tempSession.getAdministrators().add(newQq);
-        subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-        subject.sendMessage(step.getInstruction());
-    }
-
-    public void onModifyDelAdministrator(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        删除管理员
-        Session tempSession = modifySessionIdTempMap.get(sender.getId());
-
-        if ("exit".equalsIgnoreCase(content)) {
-            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MODIFY_MAIN, subject);
-            return;
-        }
-
-        long delQq;
-        try {
-            delQq = Long.parseLong(content);
-        } catch (NumberFormatException e) {
-            subject.sendMessage("管理员QQ应该为数字而不是" + content);
-            subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-            subject.sendMessage(step.getInstruction());
-            return;
-        }
-
-        tempSession.getAdministrators().removeIf(o -> o == delQq);
-        subject.sendMessage("正在修改会话（此为副本）：\n" + SessionUtil.sessionToString(tempSession));
-        subject.sendMessage(step.getInstruction());
-    }
-
-    public void onModifyOk(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onModifyOk(McChatCommandStep step, Contact subject, User sender, String content) {
         Session tempSession = modifySessionIdTempMap.get(sender.getId());
         Session oldSession;
 
@@ -869,20 +596,20 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         subject.sendMessage("对于会话" + tempSession.getId() + "的修改已完成\n" +
                 "====================\n" + SessionUtil.sessionToString(modifiedSession));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
     }
 
-    public void onAnnounce(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onAnnounce(McChatCommandStep step, Contact subject, User sender, String content) {
 //        发送公告
 
         if ("exit".equalsIgnoreCase(content)) {
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
             return;
         }
 
         List<Session> sessions;
         try {
-            sessions = SessionUtil.getSessions();
+            sessions = SessionUtil.getUserSessions(sender.getId());
         } catch (Exception e) {
             e.printStackTrace();
             subject.sendMessage("发送公告功能在获取会话列表时产生异常，请稍后重试或联系开发者");
@@ -895,11 +622,11 @@ public class OpMcCommandStepListener implements ListenerHost {
         switch (content.toLowerCase()) {
             case "content":
                 subject.sendMessage(announcement.toOutputString(sessions));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE_CONTENT, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE_CONTENT, subject);
                 break;
             case "mc":
                 subject.sendMessage(announcement.toOutputString(sessions));
-                OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE_MC, subject);
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE_MC, subject);
                 break;
             case "ok":
                 onAnnounceOk(step, subject, sender, content);
@@ -912,41 +639,15 @@ public class OpMcCommandStepListener implements ListenerHost {
         }
     }
 
-    public void onAnnounceContent(OpMcChatCommandStep step, Contact subject, User sender, String content) {
-//        发送公告内容
-        List<Session> sessions;
-        try {
-            sessions = SessionUtil.getSessions();
-        } catch (Exception e) {
-            e.printStackTrace();
-            subject.sendMessage("发送公告内容设置在获取会话列表时产生异常，请稍后重试或联系开发者");
-//            跳回到上一步，因为此处无法调用announcement.toOutputString
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
-            return;
-        }
-
-        Announcement announcement = announceTempMap.get(sender.getId());
-
-        if ("exit".equalsIgnoreCase(content)) {
-            subject.sendMessage(announcement.toOutputString(sessions));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
-            return;
-        }
-
-        announcement.setContent(content);
-        subject.sendMessage(announcement.toOutputString(sessions));
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
-    }
-
-    public void onAnnounceMc(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onAnnounceMc(McChatCommandStep step, Contact subject, User sender, String content) {
 //        选定发送公告连接
         List<Session> sessions;
         try {
-            sessions = SessionUtil.getSessions();
+            sessions = SessionUtil.getUserSessions(sender.getId());
         } catch (Exception e) {
             e.printStackTrace();
             subject.sendMessage("发送公告连接设置在获取会话列表时产生异常，请稍后重试或联系开发者");
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
             return;
         }
 
@@ -954,7 +655,7 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         if ("exit".equalsIgnoreCase(content)) {
             subject.sendMessage(announcement.toOutputString(sessions));
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
             return;
         }
 
@@ -1000,7 +701,7 @@ public class OpMcCommandStepListener implements ListenerHost {
 
         Session session;
         try {
-            session = SessionUtil.getSession(sessionId);
+            session = SessionUtil.getUserSession(sessionId, sender.getId());
         } catch (SessionDataNotExistException e) {
             subject.sendMessage("会话号为" + sessionId + "的会话不存在");
             subject.sendMessage(announcement.toOutputString(sessions));
@@ -1049,15 +750,41 @@ public class OpMcCommandStepListener implements ListenerHost {
         subject.sendMessage(step.getInstruction());
     }
 
-    public void onAnnounceOk(OpMcChatCommandStep step, Contact subject, User sender, String content) {
+    public void onAnnounceContent(McChatCommandStep step, Contact subject, User sender, String content) {
+//        发送公告内容
+        List<Session> sessions;
+        try {
+            sessions = SessionUtil.getUserSessions(sender.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            subject.sendMessage("发送公告内容设置在获取会话列表时产生异常，请稍后重试或联系开发者");
+//            跳回到上一步，因为此处无法调用announcement.toOutputString
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        Announcement announcement = announceTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(announcement.toOutputString(sessions));
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
+            return;
+        }
+
+        announcement.setContent(content);
+        subject.sendMessage(announcement.toOutputString(sessions));
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
+    }
+
+    public void onAnnounceOk(McChatCommandStep step, Contact subject, User sender, String content) {
 //        确认发送公告
         List<Session> sessions;
         try {
-            sessions = SessionUtil.getSessions();
+            sessions = SessionUtil.getUserSessions(sender.getId());
         } catch (Exception e) {
             e.printStackTrace();
             subject.sendMessage("发送公告过程中在获取会话列表时产生异常，请稍后重试或联系开发者");
-            OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.ANNOUNCE, subject);
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.ANNOUNCE, subject);
             return;
         }
 
@@ -1090,6 +817,370 @@ public class OpMcCommandStepListener implements ListenerHost {
             SessionModifyUtil.isSessionModifying = false;
         }
 
-        OpMcChatCommandStepUtil.setStep(sender.getId(), OpMcChatCommandStep.MAIN, subject);
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
+    }
+
+    public void onUserCommand(McChatCommandStep step, Contact subject, User sender, String content) {
+//        用户指令相关设置
+        if ("exit".equalsIgnoreCase(content)) {
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
+            return;
+        }
+
+        if ("list".equalsIgnoreCase(content)) {
+//            发送list
+            List<Session> userSessions;
+            try {
+                userSessions = SessionUtil.getUserSessions(sender.getId());
+            } catch (Exception e) {
+                e.printStackTrace();
+                subject.sendMessage("发生异常，请联系管理原或稍后重试");
+                subject.sendMessage(step.getInstruction());
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("连接列表：\n");
+            for (Session session : userSessions) {
+                sb.append("    会话 ").append(session.getId()).append("(").append(session.getName()).append(")：\n");
+
+                List<MinecraftConnectionThread> minecraftThreads = session.getMinecraftThreads();
+                for (MinecraftConnectionThread thread : minecraftThreads) {
+                    sb.append("        ").append(thread.getServerName().getContent()).append("(").append(thread.getServerAddress()).append(")\n");
+                }
+            }
+
+            subject.sendMessage(sb.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        content = content.trim();
+        String[] split = content.split(" ");
+
+        if (split.length < 2) {
+//            小于两个参数，则参数不全
+            subject.sendMessage("参数不全");
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        获取输入会话号
+        String sessionIdString = split[0];
+        long sessionId;
+        try {
+            sessionId = Long.parseLong(sessionIdString);
+        } catch (NumberFormatException e) {
+            subject.sendMessage("会话号应为数字而不是" + sessionIdString);
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        检查会话存在
+        Session session;
+        try {
+            session = SessionUtil.getUserSession(sessionId, sender.getId());
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("会话号为" + sessionId + "的会话不存在");
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+            subject.sendMessage("发生异常，请联系管理原或稍后重试");
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+//        获取输入的服务器名字
+        String serverName = content.substring(sessionIdString.length()).trim();
+        boolean isExist = session.isMinecraftServerNameExist(serverName);
+
+        UserCommand userCommand = new UserCommand();
+        userCommand.setSessionId(session.getId());
+        userCommand.setSessionName(session.getName());
+        userCommand.setServerName(serverName);
+
+        userCommandTempMap.put(sender.getId(), userCommand);
+
+        subject.sendMessage(userCommand.toString());
+        if (!isExist) {
+            subject.sendMessage("会话 " + sessionId + "(" + session.getName() + ")" + " 的连接 " + serverName + " 不存在\n" +
+                    "可能原因为：\n" +
+                    "    连接名输入错误\n" +
+                    "    此刻连接名为此名的连接暂时未接入\n" +
+                    "可继续操作，将在发送确认指令时再次确认连接状态");
+        }
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+    }
+
+    public void onUserCommandMenu(McChatCommandStep step, Contact subject, User sender, String content) {
+//        用户指令主菜单
+        if ("exit".equalsIgnoreCase(content)) {
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.MAIN, subject);
+            return;
+        }
+
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+
+        switch (content.toLowerCase()) {
+            case "add": {
+//                添加用户指令
+                UserCommandAdd uca = new UserCommandAdd();
+                uca.setSessionId(userCommand.getSessionId());
+                uca.setSessionName(userCommand.getSessionName());
+                uca.setServerName(userCommand.getServerName());
+                userCommandAddTempMap.put(sender.getId(), uca);
+
+                subject.sendMessage(uca.toString());
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_NAME, subject);
+                break;
+            }
+            case "del": {
+//                删除用户指令
+                UserCommandDel ucd = new UserCommandDel();
+                ucd.setSessionId(userCommand.getSessionId());
+                ucd.setSessionName(userCommand.getSessionName());
+                ucd.setServerName(userCommand.getServerName());
+                userCommandDelTempMap.put(sender.getId(), ucd);
+
+                subject.sendMessage(ucd.toString());
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_DEL, subject);
+                break;
+            }
+            case "list": {
+//                列出用户指令
+                Session session;
+                try {
+                    session = SessionUtil.getUserSession(userCommand.getSessionId(), sender.getId());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("会话号为" + userCommand.getSessionId() + "的会话不存在");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                } catch (Exception e) {
+                    subject.sendMessage("出现其它异常，请稍后重试或联系开发者");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                }
+
+                MinecraftConnectionThread thread = session.getMinecraftThread(userCommand.getServerName());
+                if (thread == null) {
+                    subject.sendMessage("会话号为" + userCommand.getSessionId() + "的会话中不存在名称为" + userCommand.getServerName() + "的连接");
+                    subject.sendMessage(userCommand.toString());
+                    subject.sendMessage(step.getInstruction());
+                    break;
+                }
+
+                thread.sendGetMcChatUserCommands(sender.getId());
+                subject.sendMessage("用户指令列表将在异步消息中返回");
+                subject.sendMessage(userCommand.toString());
+                subject.sendMessage(step.getInstruction());
+                break;
+            }
+
+            default:
+                subject.sendMessage("不存在的指令");
+                subject.sendMessage(userCommand.toString());
+                subject.sendMessage(step.getInstruction());
+                return;
+        }
+    }
+
+    public void onUserCommandAddName(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 指令名
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+
+        if ("list".equalsIgnoreCase(content)) {
+            subject.sendMessage("不能使用list作为指令名");
+            subject.sendMessage(userCommandAdd.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        userCommandAdd.setName(content);
+
+        subject.sendMessage(userCommandAdd.toString());
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_COMMAND, subject);
+    }
+
+    public void onUserCommandAddCommand(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 用户指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        userCommandAdd.setCommand(content);
+        List<String> commandArgList = userCommandAdd.getCommandArgList();
+        StringBuilder sb = new StringBuilder("用户指令中具有参数：\n");
+        for (String arg : commandArgList) {
+            sb.append(arg).append("\n");
+        }
+        sb.append("指定实际指令时需使用以上所有参数");
+
+        subject.sendMessage(userCommandAdd.toString());
+        subject.sendMessage(sb.toString());
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_MAPPING, subject);
+    }
+
+    public void onUserCommandAddMapping(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 实际指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        UserCommandAdd uca = userCommandAddTempMap.get(sender.getId());
+        List<String> commandArgList = uca.getCommandArgList();
+
+        uca.setMapping(content);
+        List<String> mappingArgList = uca.getMappingArgList();
+
+        for (String s : mappingArgList) {
+            commandArgList.removeIf(o -> o.equals(s));
+        }
+
+        if (commandArgList.size() != 0) {
+            StringBuilder res = new StringBuilder("以下参数未使用：\n");
+            for (String s : commandArgList) {
+                res.append(s).append("\n");
+            }
+
+            uca.setMapping(null);
+            subject.sendMessage(res.toString());
+            subject.sendMessage(uca.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        subject.sendMessage(uca.toString());
+        McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_ADD_CONFIRM, subject);
+    }
+
+    public void onUserCommandAddConfirm(McChatCommandStep step, Contact subject, User sender, String content) {
+//        添加用户指令 确认
+
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+        UserCommandAdd userCommandAdd = userCommandAddTempMap.get(sender.getId());
+
+        switch (content.toLowerCase()) {
+            case "exit":
+                subject.sendMessage(userCommand.toString());
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+                break;
+            case "ok": {
+                Session session;
+                try {
+                    session = SessionUtil.getSession(userCommandAdd.getSessionId());
+                } catch (SessionDataNotExistException e) {
+                    subject.sendMessage("会话号为" + userCommandAdd.getSessionId() + "的会话不存在");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                } catch (Exception e) {
+                    subject.sendMessage("出现其它异常，请稍后重试或者联系开发者");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                }
+
+                MinecraftConnectionThread minecraftThread = session.getMinecraftThread(userCommandAdd.getServerName());
+                if (minecraftThread == null) {
+                    subject.sendMessage("会话 " + userCommandAdd.getSessionId() + " 没有连接名为 " + userCommandAdd.getServerName() + " 的连接");
+                    subject.sendMessage(userCommandAdd.toString());
+                    subject.sendMessage(step.getInstruction());
+                    return;
+                }
+
+                minecraftThread.sendAddUserCommandPacket(
+                        sender.getId(),
+                        userCommandAdd.getName(),
+                        userCommandAdd.getCommand(),
+                        userCommandAdd.getMapping()
+                );
+
+                subject.sendMessage("已发送添加用户指令数据包，执行结果将在另一条异步消息返回");
+                McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+                break;
+            }
+            default:
+                subject.sendMessage("无该指令");
+                subject.sendMessage(userCommandAdd.toString());
+                subject.sendMessage(step.getInstruction());
+                break;
+        }
+    }
+
+    public void onUserCommandDelCommand(McChatCommandStep step, Contact subject, User sender, String content) {
+//        删除用户指令
+        UserCommand userCommand = userCommandTempMap.get(sender.getId());
+        UserCommandDel userCommandDel = userCommandDelTempMap.get(sender.getId());
+        if ("exit".equalsIgnoreCase(content)) {
+            subject.sendMessage(userCommand.toString());
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+//        先获取会话和连接
+        Session session;
+        try {
+            session = SessionUtil.getUserSession(userCommandDel.getSessionId(), sender.getId());
+        } catch (SessionDataNotExistException e) {
+            subject.sendMessage("会话号为" + userCommandDel.getSessionId() + "的会话不存在");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        } catch (Exception e) {
+            subject.sendMessage("出现其它异常，请稍后重试或者联系开发者");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        MinecraftConnectionThread minecraftThread = session.getMinecraftThread(userCommandDel.getServerName());
+        if (minecraftThread == null) {
+            subject.sendMessage("会话 " + userCommandDel.getSessionId() + " 没有连接名为 " + userCommandDel.getServerName() + " 的连接");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if ("list".equalsIgnoreCase(content)) {
+            minecraftThread.sendGetMcChatUserCommands(sender.getId());
+            subject.sendMessage("已发送获取用户指令数据包，返回结果在另一条消息");
+            subject.sendMessage(userCommandDel.toString());
+            subject.sendMessage(step.getInstruction());
+            return;
+        }
+
+        if ("ok".equalsIgnoreCase(content)) {
+            List<String> delNames = userCommandDel.getDelNames();
+            for (String delName : delNames) {
+                minecraftThread.sendDelUserCommandPacket(sender.getId(), delName);
+            }
+            subject.sendMessage("已发送删除用户指令数据包，返回结果在另一条消息");
+            McChatCommandStepUtil.setStep(sender.getId(), McChatCommandStep.USER_COMMAND_MENU, subject);
+            return;
+        }
+
+        userCommandDel.selectDelName(content);
+        subject.sendMessage(userCommandDel.toString());
+        subject.sendMessage(step.getInstruction());
     }
 }

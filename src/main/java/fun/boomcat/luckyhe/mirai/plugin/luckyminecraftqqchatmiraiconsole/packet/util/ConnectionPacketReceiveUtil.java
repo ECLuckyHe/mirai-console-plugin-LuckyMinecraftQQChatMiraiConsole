@@ -70,6 +70,19 @@ public class ConnectionPacketReceiveUtil {
         index += rconCommandPrefix.getBytesLength(charset);
         VarIntString rconCommandResultFormat = new VarIntString(Arrays.copyOfRange(data, index, data.length));
         index += rconCommandResultFormat.getBytesLength(charset);
+        VarIntString userCommandPrefix = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += userCommandPrefix.getBytesLength(charset);
+        VarIntString userBindPrefix = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += userBindPrefix.getBytesLength(charset);
+
+        VarInt getUserCommandsCommandsCount = new VarInt(Arrays.copyOfRange(data, index, data.length));
+        index += getUserCommandsCommandsCount.getBytesLength();
+
+        VarIntString[] getUserCommandsCommands = new VarIntString[getUserCommandsCommandsCount.getValue()];
+        for (int i = 0; i < getUserCommandsCommandsCount.getValue(); i++) {
+            getUserCommandsCommands[i] = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+            index += getUserCommandsCommands[i].getBytesLength();
+        }
 
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
@@ -88,7 +101,10 @@ public class ConnectionPacketReceiveUtil {
                 onlinePlayersCommandResponseFormat,
                 onlinePlayersCommandResponseSeparator,
                 rconCommandPrefix,
-                rconCommandResultFormat
+                rconCommandResultFormat,
+                userCommandPrefix,
+                userBindPrefix,
+                getUserCommandsCommands
         );
     }
 
