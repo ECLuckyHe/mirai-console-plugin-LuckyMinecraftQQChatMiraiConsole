@@ -120,7 +120,7 @@ public class SessionUtil {
         CountDownLatch cdl = new CountDownLatch(getSessions().size());
         for (Session session : getSessions()) {
             AsyncCaller.run(() -> {
-                session.sendClosePacketToMinecraftThread(info);
+                session.sendClosePacketToMinecraftThreads(info);
                 while (session.getMinecraftThreads().size() != 0) {
                     logger.info("等待会话" + session.getId() + "关闭所有连接，当前剩余" + session.getMinecraftThreads().size() + "个连接");
                     try {
