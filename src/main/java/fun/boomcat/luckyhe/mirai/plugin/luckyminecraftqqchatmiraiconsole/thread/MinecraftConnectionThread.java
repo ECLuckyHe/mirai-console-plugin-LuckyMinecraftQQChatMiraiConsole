@@ -37,6 +37,7 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString userCommandPrefix;
     private final VarIntString userBindPrefix;
     private final VarIntString[] getUserCommandsCommands;
+    private final VarIntString whitelistCorrectMessage;
 
     //    断开原因
     private String disconnectReason = "异常退出";
@@ -924,7 +925,8 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString rconCommandResultFormat,
             VarIntString userCommandPrefix,
             VarIntString userBindPrefix,
-            VarIntString[] getUserCommandsCommands
+            VarIntString[] getUserCommandsCommands,
+            VarIntString whitelistCorrectMessage
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -942,6 +944,7 @@ public class MinecraftConnectionThread extends Thread {
         this.userCommandPrefix = userCommandPrefix;
         this.userBindPrefix = userBindPrefix;
         this.getUserCommandsCommands = getUserCommandsCommands;
+        this.whitelistCorrectMessage = whitelistCorrectMessage;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());

@@ -84,6 +84,9 @@ public class ConnectionPacketReceiveUtil {
             index += getUserCommandsCommands[i].getBytesLength();
         }
 
+        VarIntString whitelistCorrectMessage = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += whitelistCorrectMessage.getBytesLength();
+
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
         }
@@ -104,7 +107,8 @@ public class ConnectionPacketReceiveUtil {
                 rconCommandResultFormat,
                 userCommandPrefix,
                 userBindPrefix,
-                getUserCommandsCommands
+                getUserCommandsCommands,
+                whitelistCorrectMessage
         );
     }
 

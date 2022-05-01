@@ -34,6 +34,7 @@ Client应该连接后主动发送此数据包。
 | userBindPrefix                        | `VarIntString`   | 用户绑定mcid与qq前缀    |
 | getUserCommandCount                   | `VarInt`         | 获取\[获取用户指令]的指令条数 |
 | getUserCommandsCommand                | `VarIntString[]` | 获取\[获取用户指令]的指令列表 |
+| whitelistCorrectMessage               | `VarIntString`   | 白名单uuid修改完成信息    |
 
 #### 往Client
 
