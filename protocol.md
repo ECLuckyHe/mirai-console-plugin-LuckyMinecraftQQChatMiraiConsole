@@ -34,6 +34,8 @@ Client应该连接后主动发送此数据包。
 | userBindPrefix                        | `VarIntString`   | 用户绑定mcid与qq前缀    |
 | getUserCommandCount                   | `VarInt`         | 获取\[获取用户指令]的指令条数 |
 | getUserCommandsCommand                | `VarIntString[]` | 获取\[获取用户指令]的指令列表 |
+| whitelistCorrectMessage               | `VarIntString`   | 白名单uuid修改完成信息    |
+| whitelistTryMessage                   | `VarIntString`   | 非白名单玩家尝试进入游戏信息   |
 
 #### 往Client
 
@@ -382,6 +384,24 @@ Pong，回应Ping包。
 | command1 | `VarIntString` | 用户指令1     |
 | mapping1 | `VarIntString` | 用户指令实际指令1 |
 | ...      | `...`          | ...       |
+
+<br>
+
+非白名单用户尝试登录（加了白名单但uuid不一致也会发送）。  
+包ID：**0x30**
+
+| 项目         | 类型             | 描述    |
+|------------|----------------|-------|
+| playerName | `VarIntString` | 登录玩家名 |
+
+<br>
+
+白名单uuid修改完成发送。  
+包ID：**0x31**
+
+| 项目         | 类型             | 描述  |
+|------------|----------------|-----|
+| playerName | `VarIntString` | 玩家名 |
 
 <br>
 

@@ -37,6 +37,9 @@ public class MinecraftConnectionThread extends Thread {
     private final VarIntString userCommandPrefix;
     private final VarIntString userBindPrefix;
     private final VarIntString[] getUserCommandsCommands;
+    private final VarIntString whitelistCorrectMessage;
+
+    private final VarIntString whitelistTryMessage;
 
     //    断开原因
     private String disconnectReason = "异常退出";
@@ -807,6 +810,32 @@ public class MinecraftConnectionThread extends Thread {
 
                             break;
                         }
+
+                        case 0x30: {
+//                            非白名单尝试进入
+                            VarIntString playerName = new VarIntString(packet.getData());
+                            session.sendMessageToAllGroups(new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    whitelistTryMessage.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.PLAYER_NAME,
+                                    playerName.getContent()
+                            ))));
+                            break;
+                        }
+
+                        case 0x31: {
+//                            非白名单尝试进入
+                            VarIntString playerName = new VarIntString(packet.getData());
+                            session.sendMessageToAllGroups(new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    whitelistCorrectMessage.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.PLAYER_NAME,
+                                    playerName.getContent()
+                            ))));
+                            break;
+                        }
                     }
                 } catch (Exception e) {
 //                    e.printStackTrace();
@@ -924,7 +953,9 @@ public class MinecraftConnectionThread extends Thread {
             VarIntString rconCommandResultFormat,
             VarIntString userCommandPrefix,
             VarIntString userBindPrefix,
-            VarIntString[] getUserCommandsCommands
+            VarIntString[] getUserCommandsCommands,
+            VarIntString whitelistCorrectMessage,
+            VarIntString whitelistTryMessage
     ) throws IOException {
         this.socket = socket;
         this.sessionId = sessionId;
@@ -942,6 +973,8 @@ public class MinecraftConnectionThread extends Thread {
         this.userCommandPrefix = userCommandPrefix;
         this.userBindPrefix = userBindPrefix;
         this.getUserCommandsCommands = getUserCommandsCommands;
+        this.whitelistCorrectMessage = whitelistCorrectMessage;
+        this.whitelistTryMessage = whitelistTryMessage;
 
         this.inputStream = new BufferedInputStream(socket.getInputStream());
         this.outputStream = new BufferedOutputStream(socket.getOutputStream());
