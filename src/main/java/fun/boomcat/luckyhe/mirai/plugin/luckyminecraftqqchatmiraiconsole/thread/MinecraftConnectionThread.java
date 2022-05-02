@@ -810,6 +810,32 @@ public class MinecraftConnectionThread extends Thread {
 
                             break;
                         }
+
+                        case 0x30: {
+//                            非白名单尝试进入
+                            VarIntString playerName = new VarIntString(packet.getData());
+                            session.sendMessageToAllGroups(new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    whitelistTryMessage.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.PLAYER_NAME,
+                                    playerName.getContent()
+                            ))));
+                            break;
+                        }
+
+                        case 0x31: {
+//                            非白名单尝试进入
+                            VarIntString playerName = new VarIntString(packet.getData());
+                            session.sendMessageToAllGroups(new PlainText(Objects.requireNonNull(ReplacePlaceholderUtil.replacePlaceholderWithString(
+                                    whitelistCorrectMessage.getContent(),
+                                    MinecraftFormatPlaceholder.SERVER_NAME,
+                                    serverName.getContent(),
+                                    MinecraftFormatPlaceholder.PLAYER_NAME,
+                                    playerName.getContent()
+                            ))));
+                            break;
+                        }
                     }
                 } catch (Exception e) {
 //                    e.printStackTrace();
