@@ -87,6 +87,9 @@ public class ConnectionPacketReceiveUtil {
         VarIntString whitelistCorrectMessage = new VarIntString(Arrays.copyOfRange(data, index, data.length));
         index += whitelistCorrectMessage.getBytesLength();
 
+        VarIntString whitelistTryMessage = new VarIntString(Arrays.copyOfRange(data, index, data.length));
+        index += whitelistTryMessage.getBytesLength();
+
         if (index != data.length) {
             throw new PacketLengthNotMatchException();
         }
@@ -108,7 +111,8 @@ public class ConnectionPacketReceiveUtil {
                 userCommandPrefix,
                 userBindPrefix,
                 getUserCommandsCommands,
-                whitelistCorrectMessage
+                whitelistCorrectMessage,
+                whitelistTryMessage
         );
     }
 
