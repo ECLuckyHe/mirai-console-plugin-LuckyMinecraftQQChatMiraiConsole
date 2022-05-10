@@ -1,7 +1,7 @@
 # 绑定ip地址
 ip: "0.0.0.0"
 
-# 开放的端口号
+# 互通连接端口号
 port: 54100
 
 # 心跳包间隔（秒）
@@ -11,5 +11,7 @@ heartbeat: 10
 httpManage:
   # 是否启用
   enabled: false
+  # http 连接端口
+  port: 54101
   # 密码
   password: "123456"
