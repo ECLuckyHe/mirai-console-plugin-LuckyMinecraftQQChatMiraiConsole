@@ -56,4 +56,12 @@ public class ConfigOperation {
     public static String getIp() throws FileNotFoundException {
         return (String) getConfigMap().get("ip");
     }
+
+    public static Boolean getHttpManageEnabled() throws FileNotFoundException {
+        return (Boolean) ((Map<String, Object>) getConfigMap().get("httpManage")).get("enabled");
+    }
+
+    public static String getHttpManagePassword() throws FileNotFoundException {
+        return (String) ((Map<String, Object>) getConfigMap().get("httpManage")).get("password");
+    }
 }
