@@ -64,4 +64,8 @@ public class ConfigOperation {
     public static String getHttpManagePassword() throws FileNotFoundException {
         return (String) ((Map<String, Object>) getConfigMap().get("httpManage")).get("password");
     }
+
+    public static Integer getHttpManagePort() throws FileNotFoundException {
+        return (Integer) ((Map<String, Object>) getConfigMap().get("httpManage")).get("port");
+    }
 }
