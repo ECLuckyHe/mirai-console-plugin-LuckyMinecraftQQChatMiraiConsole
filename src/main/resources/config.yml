@@ -6,3 +6,10 @@ port: 54100
 
 # 心跳包间隔（秒）
 heartbeat: 10
+
+# 通过 http 接口进行管理
+httpManage:
+  # 是否启用
+  enabled: false
+  # 密码
+  password: "123456"
