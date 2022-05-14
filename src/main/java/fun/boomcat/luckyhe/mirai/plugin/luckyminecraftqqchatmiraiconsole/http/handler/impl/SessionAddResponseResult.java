@@ -3,7 +3,7 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.h
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.ResponseResult;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.utils.Result;
 
-public class SessionResponseResult implements ResponseResult {
+public class SessionAddResponseResult implements ResponseResult {
     @Override
     public Result<?> handle() {
         return null;
