@@ -3,9 +3,11 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.h
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.ResponseResult;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.utils.Result;
 
+import java.util.Map;
+
 public class SessionAddResponseResult implements ResponseResult {
     @Override
-    public Result<?> handle() {
+    public Result<?> handle(Map<String, Object> jsonMap) {
         return null;
     }
 }
