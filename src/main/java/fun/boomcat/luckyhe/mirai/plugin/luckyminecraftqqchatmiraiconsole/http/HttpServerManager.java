@@ -31,6 +31,19 @@ public class HttpServerManager {
     private static HttpServer init() throws IOException {
         HttpServer newHttpServer = HttpServer.create(new InetSocketAddress(ConfigOperation.getHttpManagePort()), 0);
 
+        newHttpServer.createContext("/session/get", httpExchange -> {
+
+        });
+        newHttpServer.createContext("/session/list", httpExchange -> {
+
+        });
+        newHttpServer.createContext("/session/add", httpExchange -> {
+
+        });
+        newHttpServer.createContext("/session/del", httpExchange -> {
+
+        });
+
         return newHttpServer;
     }
 }
