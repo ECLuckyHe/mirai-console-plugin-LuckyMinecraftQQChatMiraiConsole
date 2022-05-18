@@ -33,17 +33,15 @@ public class Result<T> {
         return msg;
     }
 
-    public static <T> String success(T data) {
-        Result<T> result = new Result<>(ResultCode.SUCCESS, data);
-        return toJsonString(result);
+    public static <T> Result<T> success(T data) {
+        return new Result<>(ResultCode.SUCCESS, data);
     }
 
-    public static <T> String error(ResultCode resultCode) {
-        Result<T> result = new Result<>(resultCode, null);
-        return toJsonString(result);
+    public static Result<?> error(ResultCode resultCode) {
+        return new Result<>(resultCode, null);
     }
 
-    private static String toJsonString(Result<?> result) {
+    public static String toJsonString(Result<?> result) {
         Map<String, Object> jsonMap = new HashMap<>();
 
         int code = result.getCode();

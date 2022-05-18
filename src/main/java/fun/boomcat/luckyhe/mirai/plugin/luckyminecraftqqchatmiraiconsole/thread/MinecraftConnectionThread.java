@@ -937,6 +937,26 @@ public class MinecraftConnectionThread extends Thread {
         return userBindPrefix;
     }
 
+    public VarIntString getJoinFormatString() {
+        return joinFormatString;
+    }
+
+    public VarIntString getQuitFormatString() {
+        return quitFormatString;
+    }
+
+    public VarIntString getMsgFormatString() {
+        return msgFormatString;
+    }
+
+    public VarIntString getDeathFormatString() {
+        return deathFormatString;
+    }
+
+    public VarIntString getKickFormatString() {
+        return kickFormatString;
+    }
+
     public MinecraftConnectionThread(
             Socket socket,
             VarLong sessionId,
