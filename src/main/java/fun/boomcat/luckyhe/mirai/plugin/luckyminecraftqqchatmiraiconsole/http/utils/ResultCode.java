@@ -5,7 +5,8 @@ public enum ResultCode {
     SESSION_NOT_EXISTED(1, "会话不存在"),
     SESSION_EXISTED(2, "会话已存在"),
     VERIFY_NOT_PASSED(403, "验证密码错误"),
-    INNER_ERROR(500, "内部错误");
+    INNER_ERROR(500, "内部错误"),
+    WRONG_REQUEST_DATA(400, "请求格式错误，应为application/json格式");
 
     private final int code;
     private final String msg;
