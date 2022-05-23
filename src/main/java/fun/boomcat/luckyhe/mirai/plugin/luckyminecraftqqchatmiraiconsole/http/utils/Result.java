@@ -2,6 +2,7 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.u
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,12 +42,8 @@ public class Result<T> {
         return new Result<>(resultCode, null);
     }
 
-    public static String toJsonString(Result<?> result) {
+    public String toJsonString() {
         Map<String, Object> jsonMap = new HashMap<>();
-
-        int code = result.getCode();
-        String msg = result.getMsg();
-        Object data = result.getData();
 
         if (code != -1) {
             jsonMap.put("code", code);
@@ -59,5 +56,9 @@ public class Result<T> {
         }
 
         return JSONObject.toJSONString(jsonMap);
+    }
+
+    public byte[] toJsonBytes() {
+        return toJsonString().getBytes(StandardCharsets.UTF_8);
     }
 }
