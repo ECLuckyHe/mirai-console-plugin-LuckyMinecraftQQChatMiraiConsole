@@ -18,7 +18,17 @@ import java.util.Map;
 public class SessionGetResponseResult implements ResponseResult {
     @Override
     public Result<?> handle(Map<String, Object> jsonMap) {
-        Long id = (Long) jsonMap.get("id");
+        long id;
+        try {
+            Object idObject = jsonMap.get("id");
+            if (idObject == null) {
+                return Result.error(ResultCode.SESSION_ID_NOT_PROVIDED);
+            }
+            id = idObject instanceof Integer ? (Integer) idObject : (Long) idObject;
+        } catch (ClassCastException e) {
+            return Result.error(ResultCode.SESSION_ID_TYPE_NOT_CORRECT);
+        }
+
         Session session;
         try {
             session = SessionUtil.getSession(id);
@@ -51,11 +61,11 @@ public class SessionGetResponseResult implements ResponseResult {
             Map<String, Object> map = new HashMap<>();
             map.put("name", thread.getServerName().getContent());
             map.put("address", thread.getServerAddress());
-            map.put("joinFormat", thread.getJoinFormatString());
-            map.put("quitFormat", thread.getQuitFormatString());
-            map.put("msgFormat", thread.getMsgFormatString());
-            map.put("deathFormat", thread.getDeathFormatString());
-            map.put("kickFormat", thread.getKickFormatString());
+            map.put("joinFormat", thread.getJoinFormatString().getContent());
+            map.put("quitFormat", thread.getQuitFormatString().getContent());
+            map.put("msgFormat", thread.getMsgFormatString().getContent());
+            map.put("deathFormat", thread.getDeathFormatString().getContent());
+            map.put("kickFormat", thread.getKickFormatString().getContent());
             mcConnections.add(map);
         }
         sessionMap.put("mcConnections", mcConnections);
