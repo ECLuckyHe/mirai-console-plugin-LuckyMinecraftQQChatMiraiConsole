@@ -21,29 +21,29 @@ public class SessionListResponseResult implements ResponseResult {
         try {
             Object pageSizeObject = jsonMap.get("pageSize");
             if (pageSizeObject == null) {
-                return Result.error(ResultCode.PAGE_SIZE_NOT_PROVIDED);
+                return Result.error(ResultCode.WRONG_REQUEST_DATA);
             }
             pageSize = (Integer) pageSizeObject;
         } catch (ClassCastException e) {
-            return Result.error(ResultCode.PAGE_SIZE_TYPE_NOT_CORRECT);
+            return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         int pageNo;
         try {
             Object pageNoObject = jsonMap.get("pageNo");
             if (pageNoObject == null) {
-                return Result.error(ResultCode.PAGE_NO_NOT_PROVIDED);
+                return Result.error(ResultCode.WRONG_REQUEST_DATA);
             }
             pageNo = (Integer) pageNoObject;
         } catch (ClassCastException e) {
-            return Result.error(ResultCode.PAGE_NO_TYPE_NOT_CORRECT);
+            return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         if (pageSize <= 0) {
-            return Result.error(ResultCode.PAGE_SIZE_VALUE_NOT_CORRECT);
+            return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
         if (pageNo <= 0) {
-            return Result.error(ResultCode.PAGE_NO_VALUE_NOT_CORRECT);
+            return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         int start = pageSize * (pageNo - 1);

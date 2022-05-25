@@ -47,7 +47,7 @@ public class HttpUtil {
             try {
                 verifyPassword = (String) requestJson.get("verifyPassword");
             } catch (ClassCastException e) {
-                byte[] bytes = Result.error(ResultCode.VERIFY_PASSWORD_TYPE_NOT_CORRECT).toJsonBytes();
+                byte[] bytes = Result.error(ResultCode.WRONG_REQUEST_DATA).toJsonBytes();
                 httpExchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);
                 return;
@@ -55,7 +55,7 @@ public class HttpUtil {
 
 //            未提供验证密码
             if (verifyPassword == null) {
-                byte[] bytes = Result.error(ResultCode.VERIFY_PASSWORD_NOT_PROVIDED).toJsonBytes();
+                byte[] bytes = Result.error(ResultCode.WRONG_REQUEST_DATA).toJsonBytes();
                 httpExchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);
                 return;
@@ -75,7 +75,7 @@ public class HttpUtil {
             outputStream.write(bytes);
         } catch (JSONException e) {
 //            JSON转换出错
-            byte[] bytes = Result.error(ResultCode.WRONG_REQUEST_DATA).toJsonBytes();
+            byte[] bytes = Result.error(ResultCode.WRONG_REQUEST_FORMAT).toJsonBytes();
             try {
                 httpExchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);

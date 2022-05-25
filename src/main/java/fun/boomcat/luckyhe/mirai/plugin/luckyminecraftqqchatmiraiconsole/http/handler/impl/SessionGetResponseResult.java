@@ -22,11 +22,11 @@ public class SessionGetResponseResult implements ResponseResult {
         try {
             Object idObject = jsonMap.get("id");
             if (idObject == null) {
-                return Result.error(ResultCode.SESSION_ID_NOT_PROVIDED);
+                return Result.error(ResultCode.WRONG_REQUEST_DATA);
             }
             id = idObject instanceof Integer ? (Integer) idObject : (Long) idObject;
         } catch (ClassCastException e) {
-            return Result.error(ResultCode.SESSION_ID_TYPE_NOT_CORRECT);
+            return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         Session session;
