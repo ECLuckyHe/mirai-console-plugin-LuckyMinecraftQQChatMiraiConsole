@@ -33,6 +33,7 @@ public class SessionGetResponseResult implements ResponseResult {
         try {
             session = SessionUtil.getSession(id);
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
             return Result.error(ResultCode.INNER_ERROR);
         } catch (SessionDataNotExistException e) {
             return Result.error(ResultCode.SESSION_NOT_EXISTED);
@@ -43,8 +44,8 @@ public class SessionGetResponseResult implements ResponseResult {
         sessionMap.put("name", session.getName());
         sessionMap.put("format", session.getFormatString());
 
-        List<Object> groupList = new ArrayList<>();
         List<SessionGroup> groups = session.getGroups();
+        List<Object> groupList = new ArrayList<>(groups.size());
         for (SessionGroup group : groups) {
             Map<String, Object> map = new HashMap<>();
             map.put("id", group.getId());
@@ -55,8 +56,8 @@ public class SessionGetResponseResult implements ResponseResult {
 
         sessionMap.put("administrator", session.getAdministrators());
 
-        List<Object> mcConnections = new ArrayList<>();
         List<MinecraftConnectionThread> minecraftThreads = session.getMinecraftThreads();
+        List<Object> mcConnections = new ArrayList<>(minecraftThreads.size());
         for (MinecraftConnectionThread thread : minecraftThreads) {
             Map<String, Object> map = new HashMap<>();
             map.put("name", thread.getServerName().getContent());
