@@ -31,6 +31,7 @@ public class HttpUtil {
         responseHeaders.set("Content-Type", "application/json; charset=utf-8");
         responseHeaders.set("Access-Control-Allow-Origin", "");
         responseHeaders.set("Access-Control-Allow-Methods", "POST");
+        responseHeaders.set("Connection", "close");
 
         try {
 //        获取json请求内容

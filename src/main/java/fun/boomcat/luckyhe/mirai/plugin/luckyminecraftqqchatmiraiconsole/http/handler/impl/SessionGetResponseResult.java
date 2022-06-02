@@ -9,7 +9,6 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Se
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +28,11 @@ public class SessionGetResponseResult implements ResponseResult {
         Session session;
         try {
             session = SessionUtil.getSession(id);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return Result.error(ResultCode.INNER_ERROR);
         } catch (SessionDataNotExistException e) {
             return Result.error(ResultCode.SESSION_NOT_EXISTED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error(ResultCode.INNER_ERROR);
         }
 
         Map<String, Object> sessionMap = new HashMap<>();
