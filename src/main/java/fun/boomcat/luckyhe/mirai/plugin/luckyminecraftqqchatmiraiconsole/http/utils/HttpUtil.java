@@ -45,8 +45,9 @@ public class HttpUtil {
 //            获取验证密码
             String verifyPassword;
             try {
+//                此处有可能会抛出 NullPointerException 异常
                 verifyPassword = (String) requestJson.get("verifyPassword");
-            } catch (ClassCastException e) {
+            } catch (ClassCastException | NullPointerException e) {
                 byte[] bytes = Result.error(ResultCode.WRONG_REQUEST_DATA).toJsonBytes();
                 httpExchange.sendResponseHeaders(200, bytes.length);
                 outputStream.write(bytes);
