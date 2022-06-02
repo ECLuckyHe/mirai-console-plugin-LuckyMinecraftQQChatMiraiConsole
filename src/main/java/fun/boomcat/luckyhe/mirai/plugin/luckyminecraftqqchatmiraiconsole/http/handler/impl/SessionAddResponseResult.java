@@ -37,7 +37,6 @@ public class SessionAddResponseResult implements ResponseResult {
         } catch (ClassCastException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
-        System.out.println("newId = " + newId);
 
         String newName;
         try {
@@ -49,7 +48,6 @@ public class SessionAddResponseResult implements ResponseResult {
         } catch (ClassCastException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
-        System.out.println("newName = " + newName);
 
         String newFormat;
         try {
@@ -64,7 +62,6 @@ public class SessionAddResponseResult implements ResponseResult {
         if (newFormat.equals("default")) {
             newFormat = "[%groupNickname%] <%senderGroupNickname%> %message%";
         }
-        System.out.println("newFormat = " + newFormat);
 
         List<Object> newRawGroups;
         try {
@@ -76,7 +73,6 @@ public class SessionAddResponseResult implements ResponseResult {
         } catch (ClassCastException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
-        System.out.println("newRawGroups = " + newRawGroups);
 
         List<Object> newRawAdministrators;
         try {
@@ -88,7 +84,6 @@ public class SessionAddResponseResult implements ResponseResult {
         } catch (ClassCastException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
-        System.out.println("newRawAdministrators = " + newRawAdministrators);
 
         List<Long> newGroupIds = new ArrayList<>(newRawGroups.size());
         List<String> newGroupNames = new ArrayList<>(newRawGroups.size());
@@ -127,8 +122,6 @@ public class SessionAddResponseResult implements ResponseResult {
             }
             newGroupNames.add(groupName);
         }
-        System.out.println("newGroupIds = " + newGroupIds);
-        System.out.println("newGroupNames = " + newGroupNames);
 
         List<Long> newAdministrators = new ArrayList<>(newRawAdministrators.size());
         for (Object newRawAdministrator : newRawAdministrators) {
@@ -140,7 +133,6 @@ public class SessionAddResponseResult implements ResponseResult {
             }
             newAdministrators.add(administrator);
         }
-        System.out.println("newAdministrators = " + newAdministrators);
 
 //        正式开始添加
         try {
