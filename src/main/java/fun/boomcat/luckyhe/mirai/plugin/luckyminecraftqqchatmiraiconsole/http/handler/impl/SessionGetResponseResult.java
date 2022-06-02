@@ -21,11 +21,8 @@ public class SessionGetResponseResult implements ResponseResult {
         long id;
         try {
             Object idObject = jsonMap.get("id");
-            if (idObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
             id = idObject instanceof Integer ? (Integer) idObject : (Long) idObject;
-        } catch (ClassCastException e) {
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 

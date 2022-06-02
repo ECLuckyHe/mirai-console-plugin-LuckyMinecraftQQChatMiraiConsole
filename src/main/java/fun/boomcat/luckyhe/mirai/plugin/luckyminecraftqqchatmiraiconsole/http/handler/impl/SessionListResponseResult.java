@@ -19,23 +19,15 @@ public class SessionListResponseResult implements ResponseResult {
     public Result<?> handle(Map<String, Object> jsonMap) {
         int pageSize;
         try {
-            Object pageSizeObject = jsonMap.get("pageSize");
-            if (pageSizeObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            pageSize = (Integer) pageSizeObject;
-        } catch (ClassCastException e) {
+            pageSize = (Integer) jsonMap.get("pageSize");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         int pageNo;
         try {
-            Object pageNoObject = jsonMap.get("pageNo");
-            if (pageNoObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            pageNo = (Integer) pageNoObject;
-        } catch (ClassCastException e) {
+            pageNo = (Integer) jsonMap.get("pageNo");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 

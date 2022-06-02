@@ -18,45 +18,30 @@ public class SessionAddResponseResult implements ResponseResult {
     public Result<?> handle(Map<String, Object> jsonMap) {
         Map<String, Object> requestSessionMap;
         try {
-            Object requestSessionMapObject = jsonMap.get("session");
-            if (requestSessionMapObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            requestSessionMap = (Map<String, Object>) requestSessionMapObject;
-        } catch (ClassCastException e) {
+            requestSessionMap = (Map<String, Object>) jsonMap.get("session");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         long newId;
         try {
             Object newIdObject = requestSessionMap.get("id");
-            if (newIdObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
             newId = newIdObject instanceof Integer ? (Integer) newIdObject : (Long) newIdObject;
-        } catch (ClassCastException e) {
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         String newName;
         try {
-            Object newNameObject = requestSessionMap.get("name");
-            if (newNameObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            newName = (String) newNameObject;
-        } catch (ClassCastException e) {
+            newName = (String) requestSessionMap.get("name");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         String newFormat;
         try {
-            Object newFormatObject = requestSessionMap.get("format");
-            if (newFormatObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            newFormat = (String) newFormatObject;
-        } catch (ClassCastException e) {
+            newFormat = (String) requestSessionMap.get("format");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
         if (newFormat.equals("default")) {
@@ -65,23 +50,15 @@ public class SessionAddResponseResult implements ResponseResult {
 
         List<Object> newRawGroups;
         try {
-            Object newGroupsObject = requestSessionMap.get("groups");
-            if (newGroupsObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            newRawGroups = (List<Object>) newGroupsObject;
-        } catch (ClassCastException e) {
+            newRawGroups = (List<Object>) requestSessionMap.get("groups");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
         List<Object> newRawAdministrators;
         try {
-            Object newAdministratorsObject = requestSessionMap.get("administrators");
-            if (newAdministratorsObject == null) {
-                return Result.error(ResultCode.WRONG_REQUEST_DATA);
-            }
-            newRawAdministrators = (List<Object>) newAdministratorsObject;
-        } catch (ClassCastException e) {
+            newRawAdministrators = (List<Object>) requestSessionMap.get("administrators");
+        } catch (ClassCastException | NullPointerException e) {
             return Result.error(ResultCode.WRONG_REQUEST_DATA);
         }
 
