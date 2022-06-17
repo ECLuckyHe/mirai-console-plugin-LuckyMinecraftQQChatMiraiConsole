@@ -2,10 +2,7 @@ package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http;
 
 import com.sun.net.httpserver.HttpServer;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.impl.SessionAddResponseResult;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.impl.SessionDelResponseResult;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.impl.SessionGetResponseResult;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.impl.SessionListResponseResult;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.impl.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.utils.HttpUtil;
 
 import java.io.IOException;
@@ -40,6 +37,7 @@ public class HttpServerManager {
         newHttpServer.createContext("/session/list", httpExchange -> HttpUtil.handleRequest(httpExchange, new SessionListResponseResult()));
         newHttpServer.createContext("/session/add", httpExchange -> HttpUtil.handleRequest(httpExchange, new SessionAddResponseResult()));
         newHttpServer.createContext("/session/del", httpExchange -> HttpUtil.handleRequest(httpExchange, new SessionDelResponseResult()));
+        newHttpServer.createContext("/session/modify", httpExchange -> HttpUtil.handleRequest(httpExchange, new SessionModifyResponseResult()));
 
         return newHttpServer;
     }

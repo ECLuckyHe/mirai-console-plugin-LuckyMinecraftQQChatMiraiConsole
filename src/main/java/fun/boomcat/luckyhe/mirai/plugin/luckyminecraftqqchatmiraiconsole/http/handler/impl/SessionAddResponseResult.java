@@ -78,23 +78,16 @@ public class SessionAddResponseResult implements ResponseResult {
             long groupId;
             try {
                 Object groupIdObject = map.get("id");
-                if (groupIdObject == null) {
-                    return Result.error(ResultCode.WRONG_REQUEST_DATA);
-                }
                 groupId = groupIdObject instanceof Integer ? (Integer) groupIdObject : (Long) groupIdObject;
-            } catch (ClassCastException e ) {
+            } catch (ClassCastException | NullPointerException e) {
                 return Result.error(ResultCode.WRONG_REQUEST_DATA);
             }
             newGroupIds.add(groupId);
 
             String groupName;
             try {
-                Object groupNameObject = map.get("name");
-                if (groupNameObject == null) {
-                    return Result.error(ResultCode.WRONG_REQUEST_DATA);
-                }
-                groupName = (String) groupNameObject;
-            } catch (ClassCastException e) {
+                groupName = (String) map.get("name");
+            } catch (ClassCastException | NullPointerException e) {
                 return Result.error(ResultCode.WRONG_REQUEST_DATA);
             }
             newGroupNames.add(groupName);
