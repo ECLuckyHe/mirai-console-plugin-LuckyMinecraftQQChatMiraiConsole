@@ -10,7 +10,7 @@ public class ConfigOperation {
     private static File configPath;
     private static String configFilename = "config.yml";
     private static Yaml yaml = new Yaml();
-    private static Map<String, Object> configMap;
+    private volatile static Map<String, Object> configMap;
 
     public static void initConfigPath(File path, String configContent) throws IOException {
         configPath = path;
@@ -39,7 +39,11 @@ public class ConfigOperation {
 
     private static Map<String, Object> getConfigMap() throws FileNotFoundException {
         if (configMap == null) {
-            configMap = yaml.load(new FileInputStream(configPath.getPath() + "/" + configFilename));
+            synchronized (ConfigOperation.class) {
+                if (configMap == null) {
+                    configMap = yaml.load(new FileInputStream(configPath.getPath() + "/" + configFilename));
+                }
+            }
         }
 
         return configMap;
@@ -55,5 +59,17 @@ public class ConfigOperation {
 
     public static String getIp() throws FileNotFoundException {
         return (String) getConfigMap().get("ip");
+    }
+
+    public static Boolean getHttpManageEnabled() throws FileNotFoundException {
+        return (Boolean) ((Map<String, Object>) getConfigMap().get("httpManage")).get("enabled");
+    }
+
+    public static String getHttpManagePassword() throws FileNotFoundException {
+        return (String) ((Map<String, Object>) getConfigMap().get("httpManage")).get("password");
+    }
+
+    public static Integer getHttpManagePort() throws FileNotFoundException {
+        return (Integer) ((Map<String, Object>) getConfigMap().get("httpManage")).get("port");
     }
 }

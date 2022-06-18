@@ -4,6 +4,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.command.OpMcChatCommand;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data.SessionDataOperation;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.HttpServerManager;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.McCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
@@ -28,6 +29,8 @@ import java.util.List;
 
 public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     public static final LuckyMinecraftQQChatMiraiConsole INSTANCE = new LuckyMinecraftQQChatMiraiConsole();
+
+    public volatile boolean isLoaded = false;
 
     private Permission opMcChatPerm;
     private Permission mcChatPerm;
@@ -104,6 +107,10 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        if (!isLoaded) {
+            getLogger().error("插件加载失败");
+            return;
+        }
         INSTANCE.getLogger().info("开始加载插件");
         loadPermissions();
         INSTANCE.getLogger().info("注册权限完成");
@@ -123,18 +130,35 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         try {
             ConfigOperation.initConfigPath(getConfigFolder(), getResource("config.yml", StandardCharsets.UTF_8));
         } catch (IOException e) {
+            getLogger().error("在读取config.yml文件时出现问题");
             e.printStackTrace();
+            return;
         }
 
         try {
             SessionDataOperation.initSessionDataPath(getDataFolder(), getResource("sessionData.yml", StandardCharsets.UTF_8), INSTANCE);
         } catch (IOException e) {
+            getLogger().error("在读取sessionData.yml文件时出现问题");
             e.printStackTrace();
+            return;
         }
 
 //        创建一个新线程
         newServerMainThread();
         serverMainThread.start();
+
+//        开启 http api
+        try {
+            getLogger().info("开启 HTTP API 监听");
+            HttpServerManager.startHttpServer();
+            getLogger().info("HTTP API 监听端口 " + ConfigOperation.getHttpManagePort());
+        } catch (IOException e) {
+            getLogger().error("开启 HTTP API 失败");
+            e.printStackTrace();
+            return;
+        }
+
+        isLoaded = true;
     }
 
     private void loadPermissions() {
