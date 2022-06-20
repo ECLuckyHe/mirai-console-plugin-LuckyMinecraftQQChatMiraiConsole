@@ -9,8 +9,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listene
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.ServerMainThread;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ServerMainThreadUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.extension.PluginComponentStorage;
@@ -57,7 +57,8 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     }
 
     //    监听主线程
-    private ServerMainThread serverMainThread;
+    // 在新版本中使用单独的类控制主线程
+//    private ServerMainThread serverMainThread;
 
     private LuckyMinecraftQQChatMiraiConsole() {
         super(new JvmPluginDescriptionBuilder(
@@ -66,31 +67,31 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         ).build());
     }
 
-    public ServerMainThread getServerMainThread() {
-        return serverMainThread;
-    }
+//    public ServerMainThread getServerMainThread() {
+//        return serverMainThread;
+//    }
 
-    public void newServerMainThread() {
-        serverMainThread = new ServerMainThread(getLogger());
-    }
+//    public void newServerMainThread() {
+//        serverMainThread = new ServerMainThread(getLogger());
+//    }
 
-    public void stopServerMainThread(String exitMessage) {
-        getLogger().info("=================================================================");
-
-        while (serverMainThread.isAlive()) {
-            serverMainThread.close();
-        }
-        getLogger().info("监听线程关闭完成");
-
-        try {
-            SessionUtil.closeAllConnections(exitMessage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        getLogger().info("已关闭所有线程");
-        getLogger().info("=================================================================");
-    }
+//    public void stopServerMainThread(String exitMessage) {
+//        getLogger().info("=================================================================");
+//
+//        while (serverMainThread.isAlive()) {
+//            serverMainThread.close();
+//        }
+//        getLogger().info("监听线程关闭完成");
+//
+//        try {
+//            SessionUtil.closeAllConnections(exitMessage);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        getLogger().info("已关闭所有线程");
+//        getLogger().info("=================================================================");
+//    }
 
     @Override
     public void onDisable() {
@@ -102,7 +103,8 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
 //        关闭所有游戏连接线程
-        stopServerMainThread("bot退出服务");
+//        stopServerMainThread("bot退出服务");
+        ServerMainThreadUtil.deleteCurrentThread("bot退出服务");
     }
 
     @Override
@@ -144,8 +146,9 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
 //        创建一个新线程
-        newServerMainThread();
-        serverMainThread.start();
+//        newServerMainThread();
+//        serverMainThread.start();
+        ServerMainThreadUtil.startNewThread();
 
 //        开启 http api
         try {

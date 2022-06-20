@@ -4,6 +4,7 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMi
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
+import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ServerMainThreadUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import org.yaml.snakeyaml.Yaml;
 
@@ -62,14 +63,16 @@ public class SessionDataOperation {
         sessionDataList = null;
 
 //        停止主线程
-        INSTANCE.stopServerMainThread("bot执行会话设置修改操作，稍后将自动重连");
+//        INSTANCE.stopServerMainThread("bot执行会话设置修改操作，稍后将自动重连");
+        ServerMainThreadUtil.deleteCurrentThread("bot执行会话设置修改操作，稍后将自动重连");
 
 //        清除所有Session对象
         SessionUtil.clear();
 
 //        重新开启线程
-        INSTANCE.newServerMainThread();
-        INSTANCE.getServerMainThread().start();
+//        INSTANCE.newServerMainThread();
+//        INSTANCE.getServerMainThread().start();
+        ServerMainThreadUtil.startNewThread();
     }
 
     public static Map<String, Object> getSessionData(long sessionId) throws FileNotFoundException, SessionDataNotExistException {
