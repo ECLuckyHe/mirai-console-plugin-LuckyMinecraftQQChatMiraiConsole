@@ -8,10 +8,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.Ht
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.McCommandStepListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.MessageListener;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.listener.OpMcCommandStepListener;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.MiraiLoggerUtil;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ServerMainThreadUtil;
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.SessionUtil;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.extension.PluginComponentStorage;
 import net.mamoe.mirai.console.permission.Permission;
@@ -25,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
     public static final LuckyMinecraftQQChatMiraiConsole INSTANCE = new LuckyMinecraftQQChatMiraiConsole();
@@ -95,12 +92,12 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        List<Session> sessions = null;
-        try {
-            sessions = SessionUtil.getSessions();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        List<Session> sessions = null;
+//        try {
+//            sessions = SessionUtil.getSessions();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
 
 //        关闭所有游戏连接线程
 //        stopServerMainThread("bot退出服务");
@@ -138,7 +135,7 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
         }
 
         try {
-            SessionDataOperation.initSessionDataPath(getDataFolder(), getResource("sessionData.yml", StandardCharsets.UTF_8), INSTANCE);
+            SessionDataOperation.initSessionDataPath(getDataFolder(), getResource("sessionData.yml", StandardCharsets.UTF_8));
         } catch (IOException e) {
             getLogger().error("在读取sessionData.yml文件时出现问题");
             e.printStackTrace();

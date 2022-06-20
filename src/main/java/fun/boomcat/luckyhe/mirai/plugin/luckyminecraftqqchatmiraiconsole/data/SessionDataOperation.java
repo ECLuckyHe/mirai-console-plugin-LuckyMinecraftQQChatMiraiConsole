@@ -1,6 +1,5 @@
 package fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.data;
 
-import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.LuckyMinecraftQQChatMiraiConsole;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.exception.*;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
@@ -10,6 +9,8 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,24 +18,23 @@ import java.util.Map;
 
 public class SessionDataOperation {
     private static File dataPath;
-    private static String sessionDataFilename = "sessionData.yml";
-    private static Yaml yaml = new Yaml();
+    private static final String sessionDataFilename = "sessionData.yml";
+    private static final Yaml yaml = new Yaml();
     private static List<Object> sessionDataList;
-    private static LuckyMinecraftQQChatMiraiConsole INSTANCE;
 
-    public static void initSessionDataPath(File path, String sessionDataContent, LuckyMinecraftQQChatMiraiConsole I) throws IOException {
-        INSTANCE = I;
+    public static void initSessionDataPath(File path, String sessionDataContent) throws IOException {
         dataPath = path;
-        File[] files = dataPath.listFiles();
-        boolean hasSessionData = false;
-        for (File file : files) {
-            if (file.getName().equals(sessionDataFilename)) {
-                hasSessionData = true;
-                break;
-            }
-        }
+//        File[] files = dataPath.listFiles();
+//        boolean hasSessionData = false;
+//        for (File file : files) {
+//            if (file.getName().equals(sessionDataFilename)) {
+//                hasSessionData = true;
+//                break;
+//            }
+//        }
 
-        if (!hasSessionData) {
+//        if (!hasSessionData) {
+        if (!new File(dataPath.getPath() + "/" + sessionDataFilename).exists()) {
             copySessionDataFromResource(sessionDataContent);
         }
     }
@@ -47,16 +47,16 @@ public class SessionDataOperation {
         fos.close();
     }
 
-    public static List<Object> getSessionDataList() throws FileNotFoundException {
+    public static List<Object> getSessionDataList() throws IOException {
         if (sessionDataList == null) {
-            sessionDataList = yaml.load(new InputStreamReader(new FileInputStream(dataPath.getPath() + "/" + sessionDataFilename), StandardCharsets.UTF_8));
+            sessionDataList = yaml.load(new InputStreamReader(Files.newInputStream(Paths.get(dataPath.getPath() + "/" + sessionDataFilename)), StandardCharsets.UTF_8));
         }
 
         return sessionDataList;
     }
 
     private static void writeFile() throws IOException {
-        OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(dataPath.getPath() + "/" + sessionDataFilename), StandardCharsets.UTF_8);
+        OutputStreamWriter osw = new OutputStreamWriter(Files.newOutputStream(Paths.get(dataPath.getPath() + "/" + sessionDataFilename)), StandardCharsets.UTF_8);
         yaml.dump(getSessionDataList(), osw);
         osw.close();
 
@@ -75,7 +75,7 @@ public class SessionDataOperation {
         ServerMainThreadUtil.startNewThread();
     }
 
-    public static Map<String, Object> getSessionData(long sessionId) throws FileNotFoundException, SessionDataNotExistException {
+    public static Map<String, Object> getSessionData(long sessionId) throws IOException, SessionDataNotExistException {
         List<Object> sessionDataList = getSessionDataList();
         for (Object obj : sessionDataList) {
             Map<String, Object> map = (Map<String, Object>) obj;
@@ -211,7 +211,7 @@ public class SessionDataOperation {
         throw new SessionDataAdministratorNotExistException();
     }
 
-    public static List<Session> getSessionObjects() throws FileNotFoundException {
+    public static List<Session> getSessionObjects() throws IOException {
         List<Object> sessionDataList = getSessionDataList();
         List<Session> sessionObjects = new ArrayList<>();
 

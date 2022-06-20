@@ -11,7 +11,6 @@ import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -52,7 +51,7 @@ public class ServerMainThread extends Thread {
         String ip;
         try {
             ip = ConfigOperation.getIp();
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             logger.error("获取配置文件失败，请尝试重启程序");
             return;

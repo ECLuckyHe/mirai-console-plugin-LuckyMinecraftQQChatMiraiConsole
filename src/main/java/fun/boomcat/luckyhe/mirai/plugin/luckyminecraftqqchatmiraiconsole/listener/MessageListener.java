@@ -7,8 +7,6 @@ import net.mamoe.mirai.event.SimpleListenerHost;
 import net.mamoe.mirai.event.events.GroupMessageEvent;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.FileNotFoundException;
-
 public class MessageListener extends SimpleListenerHost {
     @Override
     public void handleException(@NotNull CoroutineContext context, @NotNull Throwable exception) {
@@ -27,7 +25,7 @@ public class MessageListener extends SimpleListenerHost {
                     e.getSender().getNameCard(),
                     e.getMessage()
             );
-        } catch (FileNotFoundException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
     }

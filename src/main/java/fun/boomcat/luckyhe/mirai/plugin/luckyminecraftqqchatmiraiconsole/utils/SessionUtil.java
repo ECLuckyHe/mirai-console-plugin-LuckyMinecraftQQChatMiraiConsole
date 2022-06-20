@@ -10,15 +10,16 @@ import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.utils.MiraiLogger;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class SessionUtil {
     private static List<Session> sessions;
-    private static MiraiLogger logger = MiraiLoggerUtil.getLogger();
+    private static final MiraiLogger logger = MiraiLoggerUtil.getLogger();
 
-    public static List<Session> getSessions() throws FileNotFoundException {
+    public static List<Session> getSessions() throws IOException {
         if (sessions == null) {
             sessions = SessionDataOperation.getSessionObjects();
         }
@@ -30,7 +31,7 @@ public class SessionUtil {
         sessions = null;
     }
 
-    public static Session getSession(long sessionId) throws FileNotFoundException, SessionDataNotExistException {
+    public static Session getSession(long sessionId) throws IOException, SessionDataNotExistException {
         List<Session> sessions = getSessions();
         for (Session session : sessions) {
             if (session.getId() == sessionId) {
@@ -41,7 +42,7 @@ public class SessionUtil {
         throw new SessionDataNotExistException();
     }
 
-    public static Session getUserSession(long sessionId, long qq) throws FileNotFoundException, SessionDataNotExistException {
+    public static Session getUserSession(long sessionId, long qq) throws IOException, SessionDataNotExistException {
         List<Session> userSessions = getUserSessions(qq);
         for (Session session : userSessions) {
             if (session.getId() == sessionId) {
@@ -102,7 +103,7 @@ public class SessionUtil {
             String senderNickname,
             String senderGroupNickname,
             MessageChain message
-    ) throws FileNotFoundException {
+    ) throws IOException {
         List<Session> sessions = getSessions();
         for (Session session : sessions) {
             AsyncCaller.run(() -> {
@@ -115,7 +116,7 @@ public class SessionUtil {
         }
     }
 
-    public static void closeAllConnections(String info) throws FileNotFoundException, InterruptedException {
+    public static void closeAllConnections(String info) throws IOException, InterruptedException {
         logger.info("开始关闭所有连接线程");
         CountDownLatch cdl = new CountDownLatch(getSessions().size());
         for (Session session : getSessions()) {
@@ -144,15 +145,12 @@ public class SessionUtil {
             sessionGroups.add(new SessionGroup(group.getId(), group.getName()));
         }
 
-        List<Long> administrators = new ArrayList<>();
-        for (Long administrator : session.getAdministrators()) {
-            administrators.add(administrator);
-        }
+        List<Long> administrators = new ArrayList<>(session.getAdministrators());
 
         return new Session(session.getId(), session.getName(), sessionGroups, session.getFormatString(), administrators);
     }
 
-    public static List<Session> getUserSessions(Long qq) throws FileNotFoundException {
+    public static List<Session> getUserSessions(Long qq) throws IOException {
         List<Session> res = new ArrayList<>();
 
         List<Session> sessions = getSessions();

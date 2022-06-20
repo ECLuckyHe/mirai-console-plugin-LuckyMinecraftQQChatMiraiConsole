@@ -7,7 +7,6 @@ import com.sun.net.httpserver.HttpExchange;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.config.ConfigOperation;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.http.handler.ResponseResult;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -18,7 +17,7 @@ public class HttpUtil {
     public static boolean checkVerifyPassword(String password) {
         try {
             return password.equals(ConfigOperation.getHttpManagePassword());
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             return false;
         }
     }
