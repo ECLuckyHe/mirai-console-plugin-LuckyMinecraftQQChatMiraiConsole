@@ -62,8 +62,6 @@ public class LuckyMinecraftQQChatMiraiConsole extends JavaPlugin {
                 "luckyhe.luckyminecraftqqchatmiraiconsole",
                 "1.2"
         ).build());
-
-        // 换设备测试
     }
 
 //    public ServerMainThread getServerMainThread() {
