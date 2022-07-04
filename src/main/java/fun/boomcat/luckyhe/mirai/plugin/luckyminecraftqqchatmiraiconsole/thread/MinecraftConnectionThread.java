@@ -10,6 +10,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.packet.
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Session;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.*;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.data.*;
 import net.mamoe.mirai.utils.MiraiLogger;
 
@@ -95,21 +97,18 @@ public class MinecraftConnectionThread extends Thread {
     }
 
     public void sendMessage(
-            long groupId,
-            String groupName,
+            Group group,
+            Member member,
             String groupNickname,
-            long senderId,
-            String senderNickname,
-            String senderGroupNickname,
             MessageChain message
     ) {
         VarInt packetId = new VarInt(0x10);
-        VarLong gi = new VarLong(groupId);
-        VarIntString gn = new VarIntString(groupName);
+        VarLong gi = new VarLong(group.getId());
+        VarIntString gn = new VarIntString(group.getName());
         VarIntString gnm = new VarIntString(groupNickname);
-        VarLong si = new VarLong(senderId);
-        VarIntString snm = new VarIntString(senderNickname);
-        VarIntString sgnm = new VarIntString(senderGroupNickname.length() == 0 ? senderNickname : senderGroupNickname);
+        VarLong si = new VarLong(member.getId());
+        VarIntString snm = new VarIntString(member.getNick());
+        VarIntString sgnm = new VarIntString(member.getNameCard().length() == 0 ? member.getNick() : member.getNameCard());
 
         int len = packetId.getBytesLength() + gi.getBytesLength() +
                 gn.getBytesLength() + gnm.getBytesLength() +

@@ -6,6 +6,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.Se
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.pojo.SessionGroup;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.thread.MinecraftConnectionThread;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.utils.MiraiLogger;
 
@@ -97,18 +99,15 @@ public class SessionUtil {
 
     public static void sendMessageFromGroup(
             Bot bot,
-            long groupId,
-            String groupName,
-            long senderId,
-            String senderNickname,
-            String senderGroupNickname,
+            Group group,
+            Member member,
             MessageChain message
     ) throws IOException {
         List<Session> sessions = getSessions();
         for (Session session : sessions) {
             AsyncCaller.run(() -> {
                 try {
-                    session.sendMessageFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
+                    session.sendMessageFromGroup(bot, group, member, message);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }

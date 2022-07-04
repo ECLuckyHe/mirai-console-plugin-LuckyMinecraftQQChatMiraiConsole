@@ -18,11 +18,8 @@ public class MessageListener extends SimpleListenerHost {
         try {
             SessionUtil.sendMessageFromGroup(
                     e.getBot(),
-                    e.getGroup().getId(),
-                    e.getGroup().getName(),
-                    e.getSender().getId(),
-                    e.getSender().getNick(),
-                    e.getSender().getNameCard(),
+                    e.getGroup(),
+                    e.getSender(),
                     e.getMessage()
             );
         } catch (Exception ex) {

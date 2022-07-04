@@ -9,6 +9,8 @@ import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.M
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.QqFormatPlaceholder;
 import fun.boomcat.luckyhe.mirai.plugin.luckyminecraftqqchatmiraiconsole.utils.ReplacePlaceholderUtil;
 import net.mamoe.mirai.Bot;
+import net.mamoe.mirai.contact.Group;
+import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.data.Message;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageChainBuilder;
@@ -96,18 +98,20 @@ public class Session {
 
     public void sendMessageFromGroup(
             Bot bot,
-            long groupId,
-            String groupName,
-            long senderId,
-            String senderNickname,
-            String senderGroupNickname,
+            Group group,
+            Member member,
             MessageChain message
     ) throws FileNotFoundException {
 //        处理从群来的消息
+        long groupId = group.getId();
+        String groupName = group.getName();
+        long senderId = member.getId();
+        String senderNickname = member.getNick();
+        String senderGroupNickname = member.getNameCard();
 
         boolean found = false;
-        for (SessionGroup group : groups) {
-            if (group.getId() == groupId) {
+        for (SessionGroup g : groups) {
+            if (g.getId() == groupId) {
                 found = true;
                 break;
             }
@@ -177,8 +181,8 @@ public class Session {
             }
         }
 
-        sendSessionGroupsFromGroup(bot, groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
-        sendSessionMinecraftThreadsFromGroup(groupId, groupName, senderId, senderNickname, senderGroupNickname, message);
+        sendSessionGroupsFromGroup(bot, group, member, message);
+        sendSessionMinecraftThreadsFromGroup(group, member, message);
     }
 
     public void sendAnnouncementToMinecraftConnection(long senderId, String senderNickname, String serverName, String announcement) throws MinecraftThreadNotFoundException {
@@ -204,16 +208,13 @@ public class Session {
     }
 
     private void sendSessionMinecraftThreadsFromGroup(
-            long groupId,
-            String groupName,
-            long senderId,
-            String senderNickname,
-            String senderGroupNickname,
+            Group group,
+            Member member,
             MessageChain message
     ) {
 //        群->mc
 //        转成对应类型
-        String groupNickname = getGroupNickname(groupId);
+        String groupNickname = getGroupNickname(group.getId());
         if (groupNickname == null) {
             return;
         }
@@ -222,12 +223,9 @@ public class Session {
             for (MinecraftConnectionThread thread : minecraftThreads) {
 //                添加进发送队列中
                 thread.sendMessage(
-                        groupId,
-                        groupName,
+                        group,
+                        member,
                         groupNickname,
-                        senderId,
-                        senderNickname,
-                        senderGroupNickname,
                         message
                 );
             }
@@ -236,13 +234,16 @@ public class Session {
 
     private void sendSessionGroupsFromGroup(
             Bot bot,
-            long groupId,
-            String groupName,
-            long senderId,
-            String senderNickname,
-            String senderGroupNickname,
+            Group group,
+            Member member,
             MessageChain message
     ) {
+        long groupId = group.getId();
+        String groupName = group.getName();
+        long senderId = member.getId();
+        String senderNickname = member.getNick();
+        String senderGroupNickname = member.getNameCard();
+
 //        群->群
         String groupNickname = getGroupNickname(groupId);
         if (groupNickname == null) {
@@ -287,10 +288,10 @@ public class Session {
             }
         }
 
-        for (SessionGroup group : groups) {
-            if (group.getId() != groupId) {
+        for (SessionGroup g : groups) {
+            if (g.getId() != groupId) {
                 try {
-                    bot.getGroupOrFail(group.getId()).sendMessage(mcb.build());
+                    bot.getGroupOrFail(g.getId()).sendMessage(mcb.build());
                 } catch (Exception ignored) {
 
                 }
