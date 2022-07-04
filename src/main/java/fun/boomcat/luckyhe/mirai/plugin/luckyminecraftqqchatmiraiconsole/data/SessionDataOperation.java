@@ -20,7 +20,7 @@ public class SessionDataOperation {
     private static File dataPath;
     private static final String sessionDataFilename = "sessionData.yml";
     private static final Yaml yaml = new Yaml();
-    private static List<Object> sessionDataList;
+    private static volatile List<Object> sessionDataList;
 
     public static void initSessionDataPath(File path, String sessionDataContent) throws IOException {
         dataPath = path;
@@ -49,7 +49,11 @@ public class SessionDataOperation {
 
     public static List<Object> getSessionDataList() throws IOException {
         if (sessionDataList == null) {
-            sessionDataList = yaml.load(new InputStreamReader(Files.newInputStream(Paths.get(dataPath.getPath() + "/" + sessionDataFilename)), StandardCharsets.UTF_8));
+            synchronized (SessionDataOperation.class) {
+                if (sessionDataList == null) {
+                    sessionDataList = yaml.load(new InputStreamReader(Files.newInputStream(Paths.get(dataPath.getPath() + "/" + sessionDataFilename))));
+                }
+            }
         }
 
         return sessionDataList;
