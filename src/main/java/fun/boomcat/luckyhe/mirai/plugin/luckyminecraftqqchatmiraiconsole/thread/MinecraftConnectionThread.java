@@ -128,9 +128,11 @@ public class MinecraftConnectionThread extends Thread {
         List<byte[]> messageBytes = new ArrayList<>();
         for (SingleMessage singleMessage : message) {
             if (singleMessage instanceof At) {
+                At at = (At) singleMessage;
                 messageBytes.add(ByteUtil.byteMergeAll(
                         new byte[] {0x01},
-                        new VarLong(((At) singleMessage).getTarget()).getBytes()
+                        new VarLong(at.getTarget()).getBytes(),
+                        new VarIntString(at.getDisplay(group)).getBytes()
                 ));
             } else if (singleMessage instanceof AtAll) {
                 messageBytes.add(ByteUtil.byteMergeAll(new byte[] {0x02}));
