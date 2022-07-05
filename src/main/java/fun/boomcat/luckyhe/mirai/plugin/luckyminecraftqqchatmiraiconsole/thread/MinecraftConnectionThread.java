@@ -153,6 +153,12 @@ public class MinecraftConnectionThread extends Thread {
                         new VarLong(quoteReply.getSource().getFromId()).getBytes(),
                         new VarIntString(quoteReply.getSource().getOriginalMessage().contentToString()).getBytes()
                 ));
+            } else if (singleMessage instanceof LightApp) {
+                LightApp lightApp = (LightApp) singleMessage;
+                messageBytes.add(ByteUtil.byteMergeAll(
+                        new byte[] {0x06},
+                        new VarIntString(lightApp.getContent()).getBytes()
+                ));
             } else {
 //                其他，长度为0则不发
                 String s = singleMessage.contentToString();
