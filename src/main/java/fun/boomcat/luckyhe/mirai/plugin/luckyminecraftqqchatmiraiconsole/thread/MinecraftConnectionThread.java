@@ -865,8 +865,7 @@ public class MinecraftConnectionThread extends Thread {
         if (pingRight.size() == 1) {
             session.sendMessageToAllGroups(new PlainText("有Minecraft服务端断开会话！\n会话名：" +
                     session.getName() + "\n服务端名称：" +
-                    serverName.getContent() + "\n地址：" +
-                    serverAddress + "\n原因：" +
+                    serverName.getContent() + "\n原因：" +
                     disconnectReason + "\n时间：" + new Date()));
         }
     }
