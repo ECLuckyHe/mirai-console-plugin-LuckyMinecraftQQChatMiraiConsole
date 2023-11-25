@@ -26,6 +26,7 @@
             <groupId>net.mamoe</groupId>
             <artifactId>mirai-console</artifactId>
             <version>2.10.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <!--         https://mvnrepository.com/artifact/net.mamoe/mirai-core-jvm-->
@@ -33,12 +34,14 @@
             <groupId>net.mamoe</groupId>
             <artifactId>mirai-core-jvm</artifactId>
             <version>2.10.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-maven-plugin</artifactId>
             <version>1.6.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -54,5 +57,28 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
