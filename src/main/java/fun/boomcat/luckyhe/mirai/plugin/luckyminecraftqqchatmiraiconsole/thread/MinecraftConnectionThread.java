@@ -489,7 +489,6 @@ public class MinecraftConnectionThread extends Thread {
                                 //            向群内公告此连接
                                 session.sendMessageToAllGroups(new PlainText("有Minecraft服务端接入会话！\n会话名：" + session.getName() + "\n" +
                                         "服务端名称：" + serverName.getContent() + "\n" +
-                                        "地址：" + serverAddress + "\n" +
                                         "时间：" + new Date()));
                                 isFirstTime = false;
                                 pingRight.add(new Object());

@@ -36,6 +36,12 @@ public class ReplacePlaceholderUtil {
             return null;
         }
 
+        String[] oldStrings = strings;
+        strings = new String[oldStrings.length];
+        for (int i = 0; i < oldStrings.length; i++) {
+            strings[i] = oldStrings[i].replace("\\", "\\\\").replace("$", "\\$");
+        }
+
         StringBuilder patternString = new StringBuilder();
 
 //        奇数位置整合成以下格式：aaa|bbb|ccc|ddd
